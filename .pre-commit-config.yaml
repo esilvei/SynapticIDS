@@ -1,0 +1,39 @@
+# .pre-commit-config.yaml
+# This file configures the pre-commit hooks that will run automatically
+# before each commit to ensure code quality and consistency.
+
+repos:
+# General and essential hooks for maintaining file health.
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: check-yaml      # Checks YAML files for syntax errors.
+    -   id: end-of-file-fixer # Ensures that files end with a newline.
+    -   id: trailing-whitespace # Trims trailing whitespace from lines.
+
+# Ruff: An extremely fast Python linter and code formatter.
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+    -   id: ruff
+        args: [--fix] # The --fix argument tells Ruff to automatically fix any fixable errors.
+    -   id: ruff-format # This hook formats the code according to modern standards (similar to Black).
+
+# Pylint: For deeper, more thorough static code analysis.
+-   repo: local
+    hooks:
+    -   id: pylint
+        name: pylint
+        entry: pylint
+        language: system      # Uses the pylint installed in your local virtual environment (.venv).
+        types: [python]
+        args:
+          - "--rcfile=.pylintrc" # Tells pre-commit to use our custom .pylintrc configuration file.
+          # You can add other pylint arguments here if needed.
+
+# Mypy: For static type checking to catch type-related errors.
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+    -   id: mypy
+        args: [--ignore-missing-imports] # This is useful to prevent errors if a library lacks type hints.
