@@ -5,28 +5,30 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="832deccb-4236-49bd-82be-76c2a65a04b1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/FastAPIProject.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/MypyPlugin.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/SynapticIDS.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.pre-commit-config.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.pylintrc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/notebooks/DeepHybrid-IDS-Cyberattack-Classification.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/app/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test_main.http" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/analysis.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/data_loader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/data_setup.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/lr_scheduler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/model_builder.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/model_trainer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/run_training.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/transformer_fusion.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/app/data_models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/app/model_handler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/app/pre_processing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/processing/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/processing/data_transformer/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/processing/data_transformer/to_2d.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/processing/data_transformer/to_sequence.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/processing/feature_engineer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.pylintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.pylintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uv.lock" beforeDir="false" afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,33 +57,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "main",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/12dud/OneDrive/Documentos/coding/SynapticIDS/notebooks",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.data_loader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.lr_scheduler.executor&quot;: &quot;Run&quot;,
+    &quot;Python.transformer_fusion.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/12dud/OneDrive/Documentos/coding/SynapticIDS/notebooks&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\12dud\OneDrive\Documentos\coding\SynapticIDS\notebooks" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\12dud\OneDrive\Documentos\coding\SynapticIDS\scripts" />
+      <recent name="C:\Users\12dud\OneDrive\Documentos\coding\SynapticIDS\src\synaptic_ids\app" />
       <recent name="C:\Users\12dud\OneDrive\Documentos\coding\SynapticIDS" />
       <recent name="C:\Users\12dud\OneDrive\Documentos\coding\SynapticIDS\src" />
     </key>
@@ -103,11 +111,18 @@
       <updated>1754787524552</updated>
       <workItem from="1754787525652" duration="542000" />
       <workItem from="1754788094469" duration="3015000" />
-      <workItem from="1754793718765" duration="757000" />
+      <workItem from="1754793718765" duration="2360000" />
+      <workItem from="1754831266944" duration="6566000" />
+      <workItem from="1754865932153" duration="6117000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/SynapticIDS$transformer_fusion.coverage" NAME="transformer_fusion Coverage Results" MODIFIED="1754863095058" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts/custom_layers" />
+    <SUITE FILE_PATH="coverage/SynapticIDS$lr_scheduler.coverage" NAME="lr_scheduler Coverage Results" MODIFIED="1754863363546" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts/custom_layers" />
+    <SUITE FILE_PATH="coverage/SynapticIDS$data_loader.coverage" NAME="data_loader Coverage Results" MODIFIED="1754868369777" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
   </component>
 </project>
