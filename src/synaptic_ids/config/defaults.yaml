@@ -1,0 +1,57 @@
+# ===============================================================
+#   Default Configuration for the SynapticIDS Project
+# ===============================================================
+
+# --- File Paths and Dataset ---
+paths:
+  dataset_name: "dhoogla/unswnb15"
+  raw_data: "data/raw"
+  model_save: "models/synaptic_ids_model.h5"
+
+# --- Model & Training Parameters ---
+training:
+  mode: "multiclass"
+  target_column: "attack_cat"
+  epochs: 50
+  batch_size: 1024
+  use_class_weights: true
+  test_size: 0.2   # 20% of the data for the test set
+  val_size: 0.1
+# --- Feature Engineering ---
+# List of features to be used for model training.
+features:
+  selected:
+    - 'dur'
+    - 'spkts'
+    - 'dpkts'
+    - 'sbytes'
+    - 'dbytes'
+    - 'rate'
+    - 'sload'
+    - 'dload'
+    - 'sloss'
+    - 'dloss'
+    - 'sinpkt'
+    - 'dinpkt'
+    - 'sjit'
+    - 'djit'
+    - 'tcprtt'
+    - 'synack'
+    - 'ackdat'
+    - 'smean'
+    - 'dmean'
+    - 'response_body_len'
+    - 'ct_src_dport_ltm'
+    - 'ct_dst_sport_ltm'
+    - 'ct_flw_http_mthd'
+    - 'proto_freq'
+    - 'service_freq'
+    - 'sbytes_dbytes_ratio'
+    - 'spkts_dpkts_ratio'
+    - 'loss_ratio'
+    - 'packet_error_ratio'
+    - 'throughput'
+    - 'load_ratio'
+    - 'jitter_ratio'
+    - 'port_conn_ratio'
+    - 'ack_error_ratio'
