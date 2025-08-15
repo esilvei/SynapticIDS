@@ -37,9 +37,22 @@ def load_settings() -> SimpleNamespace:
     # Open and safely load the YAML file's content
     with open(config_path, "r", encoding="utf-8") as f:
         config_data = yaml.safe_load(f)
+    project_root = Path(__file__).resolve().parent.parent.parent.parent
+    if "paths" not in config_data:
+        config_data["paths"] = {}
+    config_data["paths"]["root"] = str(project_root)
+    settings_namespace = _deep_namespace(config_data)
+    settings_namespace.paths.raw_data = str(
+        project_root / settings_namespace.paths.raw_data
+    )
+    settings_namespace.paths.processed_data = str(
+        project_root / settings_namespace.paths.processed_data
+    )
+    settings_namespace.paths.model_save = str(
+        project_root / settings_namespace.paths.model_save
+    )
 
-    # Convert the dictionary to a namespace for easy access
-    return _deep_namespace(config_data)
+    return settings_namespace
 
 
 # --- THE SINGLETON INSTANCE ---

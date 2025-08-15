@@ -1,6 +1,8 @@
 import os
 import sys
-from pathlib import Path
+from datetime import datetime
+import json
+import mlflow
 
 # Ensure the root directory is in the Python path to find 'config' and 'src'
 sys.path.insert(
@@ -22,22 +24,19 @@ from src.synaptic_ids.training.analysis.analysis import (
     display_results,
     plot_training_history,
 )
+from src.synaptic_ids.training.observers.mlflow_observer import MLflowObserver
+from src.synaptic_ids.training.observers.setup_mlflow import setup_mlflow_local
 
 # Suppress TensorFlow informational messages for a cleaner output
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
-def main():
-    """
-    Main orchestrator function for the entire model training and evaluation pipeline.
-    This function reads all parameters from the central 'settings' object.
-    """
-    print("--- SYNAPTIC-IDS: STARTING END-TO-END TRAINING PIPELINE ---")
-
-    # --- Step 1: Data Setup and Loading ---
+def setup_and_load_data():
+    """Sets up dataset paths and loads data into dataframes."""
     print("STEP 1: Setting up and loading data...")
     data_setup = DataSetup(
-        dataset_name=settings.paths.dataset_name, download_path=settings.paths.raw_data
+        dataset_name=settings.paths.dataset_name,
+        download_path=settings.paths.raw_data,
     )
     local_dataset_path = data_setup.setup_dataset()
 
@@ -47,9 +46,11 @@ def main():
         test_size=settings.training.test_size,
         val_size=settings.training.val_size,
     )
-    train_df, val_df, test_df = data_loader.load_and_split()
+    return data_loader.load_and_split()
 
-    # --- Step 2: Data Preparation ---
+
+def prepare_data(train_df, val_df, test_df):
+    """Prepares and transforms data for the model."""
     print("\nSTEP 2: Preparing data for the model...")
     feature_engineer = UNSWNB15FeatureEngineer(
         mode=settings.training.mode,
@@ -63,12 +64,15 @@ def main():
     train_data = data_preparer.prepare_data(train_df, is_training=True)
     val_data = data_preparer.prepare_data(val_df)
     test_data = data_preparer.prepare_data(test_df)
+    return train_data, val_data, test_data, data_preparer
 
-    # --- Step 3: Model Architecture Construction ---
-    print("\nSTEP 3: Building the model architecture...")
+
+def build_and_train_model(train_data, val_data, data_preparer):
+    """Builds, compiles, and trains the SynapticIDS model."""
+    print("\nSTEP 3 & 4: Building and training the model...")
     if len(train_data["images"]) == 0:
         print("No training data generated. Exiting.")
-        return
+        return None, None
 
     image_shape = train_data["images"].shape[1:]
     sequence_shape = train_data["sequences"].shape[1:]
@@ -84,10 +88,10 @@ def main():
     )
     synaptic_model = builder.build()
 
-    # --- Step 4: Model Training ---
-    print("\nSTEP 4: Compiling and training the model...")
     trainer = ModelTrainer(
-        model=synaptic_model, mode=settings.training.mode, preprocessor=data_preparer
+        model=synaptic_model,
+        mode=settings.training.mode,
+        preprocessor=data_preparer,
     )
     steps_per_epoch = len(train_data["images"]) // settings.training.batch_size
     trainer.compile_model(
@@ -100,27 +104,76 @@ def main():
         batch_size=settings.training.batch_size,
         use_class_weights=settings.training.use_class_weights,
     )
+    return trainer, history
 
-    # --- Step 5: Evaluation and Analysis ---
-    print("\nSTEP 5: Evaluating the model and analyzing results...")
-    # --- FIX: Unpack the test_data dictionary into separate arguments ---
-    # The evaluate_model function expects features (x_test) and labels (y_test) separately.
+
+def evaluate_and_log_results(trainer, history, test_data, observer):
+    """Evaluates the model and logs artifacts and metrics."""
+    print("\nSTEP 5 & 6: Evaluating, analyzing, and logging results...")
+    results_dir = os.path.join(settings.paths.processed_data, "results")
+    os.makedirs(results_dir, exist_ok=True)
     x_test = [test_data["images"], test_data["sequences"]]
     y_test = test_data["labels"]
 
     results = evaluate_model(trainer, x_test=x_test, y_test=y_test)
-    display_results(results, mode=settings.training.mode)
-    plot_training_history(history)
+    observer.on_metrics_logged(
+        {"accuracy": results["accuracy"], "f1_score": results["f1_score"]}
+    )
 
-    # --- Step 6: Save Final Model Artifact ---
-    model_save_path = Path(settings.paths.model_save)
-    print(f"\nSTEP 6: Saving final model to {model_save_path}...")
-    model_save_path.parent.mkdir(parents=True, exist_ok=True)
-    trainer.model.save(model_save_path)
-    print("Model artifact saved.")
+    # Log artifacts
+    report_path = os.path.join(results_dir, "classification_report.json")
+    history_plot_path = os.path.join(results_dir, "training_history.png")
+    cm_plot_path = os.path.join(results_dir, "confusion_matrix.png")
 
-    print("\n--- SYNAPTIC-IDS: TRAINING PIPELINE COMPLETE ---")
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(results["classification_report"], f, indent=4)
+
+    plot_training_history(history, save_path=history_plot_path)
+    display_results(results, mode=settings.training.mode, save_path=cm_plot_path)
+
+    observer.on_artifact_logged(report_path, "reports")
+    observer.on_artifact_logged(cm_plot_path, "plots")
+    observer.on_artifact_logged(history_plot_path, "plots")
+
+    # Log model
+    input_example = {
+        "image_input": test_data["images"][:1],
+        "sequence_input": test_data["sequences"][:1],
+    }
+    requirements_path = os.path.join(settings.paths.root, "requirements.txt")
+    observer.on_model_logged(
+        model=trainer.model,
+        name="synaptic-ids-model",
+        registered_model_name="SynapticIDS",
+        input_example=input_example,
+        pip_requirements_path=requirements_path,
+    )
+
+
+def main():
+    """Main orchestrator function for the model training and evaluation pipeline."""
+    print("--- SYNAPTIC-IDS: STARTING END-TO-END TRAINING PIPELINE ---")
+    mlflow.set_experiment("SynapticIDS")
+    run_name = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    with mlflow.start_run(run_name=run_name) as _:
+        observer = MLflowObserver()
+        observer.on_parameters_logged(
+            {**vars(settings.training), **vars(settings.features)}
+        )
+
+        train_df, val_df, test_df = setup_and_load_data()
+        train_data, val_data, test_data, preparer = prepare_data(
+            train_df, val_df, test_df
+        )
+        trainer, history = build_and_train_model(train_data, val_data, preparer)
+
+        if trainer and history:
+            evaluate_and_log_results(trainer, history, test_data, observer)
+
+        print("\n--- SYNAPTIC-IDS: TRAINING PIPELINE COMPLETE ---")
 
 
 if __name__ == "__main__":
+    setup_mlflow_local()
     main()

@@ -11,25 +11,25 @@ from sklearn.metrics import (
 
 def evaluate_model(trainer, x_test, y_test):
     """
-    A high-level function to evaluate a trained model using raw test data.
+    Evaluates a trained model using PRE-PREPARED test data.
 
-    This function depends on the trainer to make predictions and the preprocessor
-    (via the trainer) to prepare the data, but its core responsibility is
-    to calculate and structure the evaluation metrics.
+    This function's core responsibility is to calculate and structure the
+    evaluation metrics using data that has already been processed.
 
     Args:
         trainer (ModelTrainer): The trained ModelTrainer instance.
-        X_test, y_test: Raw test data and labels.
+        x_test (list): The prepared test data inputs (e.g., [images, sequences]).
+        y_test (np.array): The prepared test labels.
 
     Returns:
         A dictionary containing all evaluation results.
     """
-    print("Evaluating model on test data...")
-    # The analysis module delegates data preparation and prediction to the trainer
-    test_data = trainer.preprocessor.prepare_data(x_test, y_test)
-    y_true_raw = test_data["labels"]
-    y_pred_proba = trainer.model.predict([test_data["images"], test_data["sequences"]])
+    print("Evaluating model on prepared test data...")
+    # The data is already prepared, so we directly predict.
+    y_true_raw = y_test
+    y_pred_proba = trainer.model.predict(x_test)
 
+    # The rest of the function remains the same logic for calculating metrics.
     if trainer.mode == "multiclass":
         y_true = (
             np.argmax(y_true_raw, axis=1)
@@ -37,11 +37,12 @@ def evaluate_model(trainer, x_test, y_test):
             else y_true_raw
         )
         y_pred = np.argmax(y_pred_proba, axis=1)
-    else:
+    else:  # Binary mode
         y_true = y_true_raw.flatten()
         y_pred = (y_pred_proba > 0.5).astype(int).flatten()
 
-    report = classification_report(y_true, y_pred, output_dict=True)
+    # Use zero_division=0 to prevent warnings for labels with no predictions.
+    report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
     cm = confusion_matrix(y_true, y_pred)
 
     return {
@@ -52,7 +53,7 @@ def evaluate_model(trainer, x_test, y_test):
     }
 
 
-def display_results(results, mode="multiclass"):
+def display_results(results, mode="multiclass", save_path=None):
     """
     Prints key metrics and plots the confusion matrix from an evaluation results dictionary.
     """
@@ -85,10 +86,15 @@ def display_results(results, mode="multiclass"):
     plt.ylabel("True Label")
     plt.xlabel("Predicted Label")
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+        print(f"Confusion matrix plot saved to {save_path}")
+
     plt.show()
+    plt.close()
 
 
-def plot_training_history(history):
+def plot_training_history(history, save_path=None):
     """
     Plots training & validation metrics from a Keras History object.
     """
@@ -118,4 +124,9 @@ def plot_training_history(history):
         plt.grid(True)
 
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+        print(f"Training history plot saved to {save_path}")
+
     plt.show()
+    plt.close()

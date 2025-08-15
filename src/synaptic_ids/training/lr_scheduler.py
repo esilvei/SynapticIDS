@@ -1,8 +1,10 @@
 import math
 import tensorflow as tf
 from tensorflow.keras.optimizers.schedules import LearningRateSchedule
+from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable()
 class OneCycleLR(LearningRateSchedule):
     """
     Implements the 1-Cycle Learning Rate policy.
