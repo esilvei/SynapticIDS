@@ -5,26 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="832deccb-4236-49bd-82be-76c2a65a04b1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/optimization/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/optimization/optimizer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/optimization/run_optimization.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/mlruns/0/meta.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/mlruns/109046571571225019/meta.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/observers/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/observers/mlflow_observer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/observers/observer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/synaptic_ids/training/observers/setup_mlflow.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/config/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/config/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/config/defaults.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/config/defaults.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/data/raw/UNSW_NB15_testing-set.parquet" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/data/raw/UNSW_NB15_training-set.parquet" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/training/analysis/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/training/analysis/analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/training/lr_scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/training/lr_scheduler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/training/model/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/training/model/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/training/model/transformer_fusion.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/training/model/transformer_fusion.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/synaptic_ids/training/run_training.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/synaptic_ids/training/run_training.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -121,6 +103,7 @@
       <workItem from="1755087343918" duration="20934000" />
       <workItem from="1755171161175" duration="34373000" />
       <workItem from="1755254911419" duration="3503000" />
+      <workItem from="1755265016454" duration="326000" />
     </task>
     <servers />
   </component>
