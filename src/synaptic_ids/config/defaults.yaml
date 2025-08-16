@@ -13,9 +13,9 @@ paths:
 training:
   mode: "binary"
   target_column: "label"
-  epochs: 2
-  batch_size: 1024
-  use_class_weights: true
+  epochs: 25
+  batch_size: 128
+  use_class_weights: None
   test_size: 0.2   # 20% of the data for the test set
   val_size: 0.1
 # --- Feature Engineering ---

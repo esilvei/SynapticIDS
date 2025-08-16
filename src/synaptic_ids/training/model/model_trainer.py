@@ -64,7 +64,6 @@ class ModelTrainer:
         self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
         print("Model compiled successfully.")
 
-    # A assinatura do método foi alterada para ser mais simples e robusta
     def train(self, train_data, val_data, epochs, batch_size, use_class_weights=True):
         """
         Executes the model training process on pre-prepared data.
@@ -80,17 +79,10 @@ class ModelTrainer:
         Returns:
             A Keras History object containing the training history.
         """
-        # --- CORREÇÃO PRINCIPAL ---
-        # As linhas abaixo foram removidas, pois os dados já chegam processados.
-        # train_data = self.preprocessor.prepare_data(x_train, y_train)
-        # val_data = self.preprocessor.prepare_data(x_val, y_val)
-
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
                 monitor="val_auc", patience=10, mode="max", restore_best_weights=True
             ),
-            # O OneCycleLR já é passado no otimizador, então não é necessário aqui
-            # a menos que você esteja usando uma implementação de callback.
         ]
 
         class_weights = (
@@ -123,7 +115,6 @@ class ModelTrainer:
                 "A preprocessor must be provided to make predictions from raw data."
             )
 
-        # Para previsão, ainda é útil processar os dados brutos aqui
         pred_data = self.preprocessor.prepare_data(x_data, y=None)
         predictions = self.model.predict([pred_data["images"], pred_data["sequences"]])
 

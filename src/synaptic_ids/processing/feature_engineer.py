@@ -56,7 +56,7 @@ class UNSWNB15FeatureEngineer:
         print("Fitting Feature Engineer...")
         df_processed = df.copy()
 
-        # Step 1: Handle rare classes and encode target
+        # Step 1: Handle rare classes and prepare target column
         df_processed = self._remove_rare_classes(df_processed)
         if self.mode == "multiclass":
             self.label_encoder.fit(df_processed[self.target_col])
@@ -64,36 +64,48 @@ class UNSWNB15FeatureEngineer:
                 df_processed[self.target_col]
             )
 
-        # Step 2: Clean and create features
-        df_processed = self._handle_duplicates(df_processed)
-        df_processed = self._encode_categoricals(df_processed, is_training=True)
-        df_processed = self._create_interaction_features(df_processed)
-
-        # Prepare data for feature selection/scaling
-        # Always drop both potential target columns to be safe
+        # Prepare data for feature engineering
         x = df_processed.drop(columns=["label", "attack_cat"], errors="ignore")
         y = df_processed[self.target_col]
 
-        # --- REFACTORED FEATURE SELECTION ---
-        # Step 3: Feature Selection
-        if not self.initial_selected_features:  # Check if the list from config is empty
-            print(
-                "No pre-selected features in config. Running Boruta for feature selection..."
-            )
-            self._select_features_boruta(x, y)
-        else:
+        # --- FIX STARTS HERE ---
+
+        # Step 2: Establish the list of features to be used BEFORE transforming them.
+        if self.initial_selected_features:
             print(
                 f"Using {len(self.initial_selected_features)} pre-selected features from config."
             )
-            self.final_selected_features = self.initial_selected_features
+            # Ensure we only select columns that actually exist in the dataframe
+            self.final_selected_features = [
+                col for col in self.initial_selected_features if col in x.columns
+            ]
+            x = x[
+                self.final_selected_features
+            ].copy()  # Work with a copy of the selected data
+        else:
+            print(
+                "No pre-selected features in config. Running Boruta for feature selection..."
+            )
+            # Note: Boruta should run on data BEFORE categorical encoding changes names.
+            self._select_features_boruta(x, y)
+            x = x[self.final_selected_features].copy()
 
-        x_selected = x[self.final_selected_features]
+        # Step 3: Clean, encode, and create features on the selected subset
+        x = self._handle_duplicates(x)
+        x = self._encode_categoricals(
+            x, is_training=True
+        )  # This will change column names
+        x = self._create_interaction_features(x)
+
+        # After encoding, the original categorical names are gone.
+        # We need to update our list of final features to reflect the new names.
+        self.final_selected_features = list(x.columns)
 
         # Step 4: Outlier detection
-        x_selected, y = self._remove_outliers(x_selected, y)
+        x, y = self._remove_outliers(x, y)
 
-        # Step 5: Scaling (learns scaler on the final selected features)
-        self.scaler.fit(x_selected)
+        # Step 5: Scaling (learns scaler on the final, transformed features)
+        self.scaler.fit(x)
 
         self.is_fitted = True
         print("Feature Engineer fitted successfully.")

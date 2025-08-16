@@ -17,16 +17,22 @@ repos:
     hooks:
     -   id: ruff
         args: [--fix] # The --fix argument tells Ruff to automatically fix any fixable errors.
-    -   id: ruff-format # This hook formats the code according to modern standards (similar to Black).
-
+    -   id: ruff-format
 # Pylint: For deeper, more thorough static code analysis.
 -   repo: local
     hooks:
     -   id: pylint
         name: pylint
         entry: pylint
-        language: system      # Uses the pylint installed in your local virtual environment (.venv).
+        language: system
         types: [python]
         args:
-          - "--rcfile=.pylintrc" # Tells pre-commit to use our custom .pylintrc configuration file.
-          # You can add other pylint arguments here if needed.
+          - "--rcfile=.pylintrc"
+# Pytest: For running tests to ensure code correctness.
+    -   id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]

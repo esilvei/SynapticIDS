@@ -26,3 +26,7 @@ dependencies = [
     "tensorflow>=2.19.0",
     "tf>=1.0.3",
 ]
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow to run"
+]
