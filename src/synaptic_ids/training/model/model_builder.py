@@ -3,12 +3,13 @@ from tensorflow import keras
 from src.synaptic_ids.training.model.transformer_fusion import TransformerFusion
 
 
+# ToDO: Simplify CNN architecture and TransformerFusion and analyse results
 class SynapticIDSBuilder:
     """
     Constructs the SynapticIDS model architecture.
 
     This class's single responsibility is to define the model's structure by
-    assembling the CNN and LSTM branches and fusing them. It separates the
+    assembling the CNN and Sequence branches and fusing them. It separates the
     architectural blueprint from the training and data handling logic.
     """
 
@@ -41,7 +42,7 @@ class SynapticIDSBuilder:
 
     def _multi_scale_cnn(self, input_tensor, block_index):
         """Defines a multi-scale convolutional block using dilated convolutions."""
-        base_filters = 48
+        base_filters = 12
         l2_reg = 1e-5 if block_index < 2 else 2e-5
 
         def dilated_conv(x, dilation_rate):
@@ -81,7 +82,7 @@ class SynapticIDSBuilder:
         input_layer = keras.layers.Input(shape=self.image_shape)
 
         x = keras.layers.Conv2D(
-            64,
+            16,
             (3, 3),
             padding="same",
             kernel_regularizer=keras.regularizers.l2(2e-5),
@@ -97,7 +98,7 @@ class SynapticIDSBuilder:
         x = keras.layers.SpatialDropout2D(0.3)(x)
 
         x = keras.layers.Conv2D(
-            96,
+            32,
             (3, 3),
             padding="same",
             dilation_rate=2,
@@ -119,17 +120,17 @@ class SynapticIDSBuilder:
             ],
         )
 
-    def _build_lstm_branch(self, lstm_units=None, dropout_rate=0.3):
-        """Constructs the complete LSTM branch for sequential feature extraction."""
-        if lstm_units is None:
-            lstm_units = [64, 32]
+    def _build_sequence_branch(self, sequence_units=None, dropout_rate=0.3):
+        """Constructs the complete Sequence branch for sequential feature extraction."""
+        if sequence_units is None:
+            sequence_units = [64, 32]
 
         input_layer = keras.layers.Input(shape=self.sequence_shape)
         x = input_layer
 
-        for _, units in enumerate(lstm_units):
+        for _, units in enumerate(sequence_units):
             x = keras.layers.Bidirectional(
-                keras.layers.LSTM(units, return_sequences=True)
+                keras.layers.GRU(units, return_sequences=True)
             )(x)
             x = keras.layers.LayerNormalization()(x)
             x = keras.layers.SpatialDropout1D(dropout_rate)(x)
@@ -154,32 +155,32 @@ class SynapticIDSBuilder:
 
     def build(self):
         """
-        Assembles the final model from the CNN and LSTM branches and returns the
+        Assembles the final model from the CNN and Sequence branches and returns the
         uncompiled Keras model.
 
         Returns:
             A tf.keras.Model instance representing the complete architecture.
         """
         input_cnn = keras.layers.Input(shape=self.image_shape, name="image_input")
-        input_lstm = keras.layers.Input(
+        input_sequence = keras.layers.Input(
             shape=self.sequence_shape, name="sequence_input"
         )
 
         cnn_model = self._build_cnn_branch()
-        lstm_model = self._build_lstm_branch()
+        sequence_model = self._build_sequence_branch()
 
         cnn_outputs = cnn_model(input_cnn)
-        lstm_outputs = lstm_model(input_lstm)
+        sequence_outputs = sequence_model(input_sequence)
 
         fusion_layer = TransformerFusion()
         fused_features = [
-            fusion_layer([cnn_feat, lstm_outputs[0], lstm_outputs[1]])
+            fusion_layer([cnn_feat, sequence_outputs[0], sequence_outputs[1]])
             for cnn_feat in cnn_outputs
         ]
 
         z = keras.layers.Concatenate()(fused_features)
         z = keras.layers.LayerNormalization(epsilon=1e-6)(z)
-        z = keras.layers.Dense(128, activation="swish")(z)
+        z = keras.layers.Dense(64, activation="swish")(z)
         z = keras.layers.BatchNormalization()(z)
         z = keras.layers.Dropout(0.4)(z)
         z = keras.layers.Dense(
@@ -195,7 +196,9 @@ class SynapticIDSBuilder:
                 self.num_classes, activation="softmax", name="output"
             )(z)
 
-        final_model = keras.models.Model(inputs=[input_cnn, input_lstm], outputs=output)
+        final_model = keras.models.Model(
+            inputs=[input_cnn, input_sequence], outputs=output
+        )
         print("SynapticIDS model built successfully.")
         final_model.summary()
 

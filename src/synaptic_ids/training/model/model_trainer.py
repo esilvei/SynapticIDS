@@ -34,16 +34,16 @@ class ModelTrainer:
         This logic is now separated from the model's architecture definition.
         """
         lr_schedule = OneCycleLR(
-            max_lr=1e-4,
+            max_lr=3e-4,
             steps_per_epoch=steps_per_epoch,
             epochs=epochs,
-            div_factor=10.0,
+            div_factor=5.0,
             final_div_factor=1e3,
             three_phase=False,
         )
         optimizer = tf.keras.optimizers.AdamW(
             learning_rate=lr_schedule,
-            weight_decay=1e-4,
+            weight_decay=1e-6,
             beta_1=0.9,
             beta_2=0.95,
             global_clipnorm=1.0,
@@ -55,7 +55,7 @@ class ModelTrainer:
             )
             if self.mode == "multiclass"
             else tf.keras.losses.BinaryFocalCrossentropy(
-                name="loss", label_smoothing=0.2
+                name="loss", label_smoothing=0.1
             )
         )
 
@@ -81,7 +81,7 @@ class ModelTrainer:
         """
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
-                monitor="val_auc", patience=10, mode="max", restore_best_weights=True
+                monitor="val_auc", patience=3, mode="max", restore_best_weights=True
             ),
         ]
 

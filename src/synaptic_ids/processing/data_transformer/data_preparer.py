@@ -29,8 +29,6 @@ class DataPreparer:
         self.sequence_generator = SequenceGenerator()  # Handles sequence creation
         self.mode = mode
 
-        # --- FIX: Initialize attributes with correct types ---
-        # These will be properly instantiated in the fit() method.
         self.image_transformer: Optional[UNSWNB15ToImage] = None
         self.is_fitted: bool = False
 
@@ -47,11 +45,7 @@ class DataPreparer:
         final_features = self.feature_engineer.final_selected_features
         print(f"Initializing data transformers with {len(final_features)} features.")
 
-        # The argument is 'feature_names' in the ToImage class, not 'selected_features'.
         self.image_transformer = UNSWNB15ToImage(feature_names=final_features)
-
-        # --- FIX: Removed incorrect logic for a non-existent sequence_transformer ---
-        # The SequenceGenerator is stateless and doesn't need to be fitted.
 
         self.is_fitted = True
         print("Data Preparer fitted successfully.")

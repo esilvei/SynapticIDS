@@ -11,13 +11,13 @@ class TransformerFusion(keras.layers.Layer):
     A custom layer to fuse multimodal features using a cross-attention mechanism.
 
     This layer takes feature tensors from different sources (e.g., a CNN branch
-    and an LSTM branch) and projects them into a common dimension. It then uses
+    and an Sequence branch) and projects them into a common dimension. It then uses
     Multi-Head Attention to allow the branches to enrich each other's representations
     before combining them into a final, fused output. This implementation follows
     modern Keras best practices by defining sub-layers within the build() method.
     """
 
-    def __init__(self, dim=128, num_heads=8, dropout_rate=0.4, **kwargs):
+    def __init__(self, dim=64, num_heads=12, dropout_rate=0.4, **kwargs):
         """
         Initializes the layer with its configuration.
 
@@ -42,10 +42,10 @@ class TransformerFusion(keras.layers.Layer):
         self.cnn_proj = keras.layers.Dense(
             self.dim, activation="swish", kernel_initializer="glorot_uniform"
         )
-        self.lstm_proj1 = keras.layers.Dense(
+        self.sequence_proj1 = keras.layers.Dense(
             self.dim, activation="swish", kernel_initializer="glorot_uniform"
         )
-        self.lstm_proj2 = keras.layers.Dense(
+        self.sequence_proj2 = keras.layers.Dense(
             self.dim, activation="swish", kernel_initializer="glorot_uniform"
         )
 
@@ -55,7 +55,7 @@ class TransformerFusion(keras.layers.Layer):
             dropout=self.dropout_rate,
             kernel_initializer="glorot_uniform",
         )
-        self.lstm_attention = keras.layers.MultiHeadAttention(
+        self.sequence_attention = keras.layers.MultiHeadAttention(
             num_heads=self.num_heads,
             key_dim=self.dim // self.num_heads,
             dropout=self.dropout_rate,
@@ -63,7 +63,7 @@ class TransformerFusion(keras.layers.Layer):
         )
 
         self.norm_cnn = keras.layers.LayerNormalization(epsilon=1e-6)
-        self.norm_lstm = keras.layers.LayerNormalization(epsilon=1e-6)
+        self.norm_sequence = keras.layers.LayerNormalization(epsilon=1e-6)
         self.norm_cross1 = keras.layers.LayerNormalization(epsilon=1e-6)
         self.norm_cross2 = keras.layers.LayerNormalization(epsilon=1e-6)
 
@@ -95,7 +95,7 @@ class TransformerFusion(keras.layers.Layer):
 
         Args:
             inputs (list or tuple): A list of three input tensors:
-                                    [cnn_features, lstm_features_1, lstm_features_2].
+                                    [cnn_features, sequence_features_1, sequence_features_2].
             training (bool): A flag indicating if the layer should behave in
                              training mode (e.g., for dropout).
 
@@ -108,41 +108,41 @@ class TransformerFusion(keras.layers.Layer):
                 f"Received {len(inputs)} inputs."
             )
 
-        cnn_feat, lstm_feat1, lstm_feat2 = inputs
+        cnn_feat, sequence_feat1, sequence_feat2 = inputs
 
         # Project input features into the common dimension `self.dim`
         cnn_proj = self.norm_cnn(self.cnn_proj(cnn_feat))
-        lstm_proj1 = self.norm_lstm(self.lstm_proj1(lstm_feat1))
-        lstm_proj2 = self.norm_lstm(self.lstm_proj2(lstm_feat2))
+        sequence_proj1 = self.norm_sequence(self.sequence_proj1(sequence_feat1))
+        sequence_proj2 = self.norm_sequence(self.sequence_proj2(sequence_feat2))
 
-        # Combine LSTM features to be used as key/value in attention
-        lstm_combined = tf.stack([lstm_proj1, lstm_proj2], axis=1)
+        # Combine Sequence features to be used as key/value in attention
+        sequence_combined = tf.stack([sequence_proj1, sequence_proj2], axis=1)
 
         # Prepare CNN features for attention mechanism
         cnn_seq = self.cnn_seq_proj(cnn_proj)
         cnn_seq = tf.reshape(cnn_seq, [-1, 2, self.dim])
 
-        # 1. CNN branch attends to LSTM branch
+        # 1. CNN branch attends to Sequence branch
         cnn_as_query = tf.expand_dims(cnn_proj, axis=1)
         cnn_attended = self.cnn_attention(
-            query=cnn_as_query, key=lstm_combined, value=lstm_combined
+            query=cnn_as_query, key=sequence_combined, value=sequence_combined
         )
         # Add & Norm: Residual connection
         cnn_enhanced = self.norm_cross1(cnn_as_query + cnn_attended)
 
-        # 2. LSTM branch attends to CNN branch
-        lstm_attended = self.lstm_attention(
-            query=lstm_combined, key=cnn_seq, value=cnn_seq
+        # 2. Sequence branch attends to CNN branch
+        sequence_attended = self.sequence_attention(
+            query=sequence_combined, key=cnn_seq, value=cnn_seq
         )
         # Add & Norm: Residual connection
-        lstm_enhanced = self.norm_cross2(lstm_combined + lstm_attended)
+        sequence_enhanced = self.norm_cross2(sequence_combined + sequence_attended)
 
         # Flatten the enhanced features before concatenation
         cnn_flat = tf.reshape(cnn_enhanced, [-1, self.dim])
-        lstm_flat = tf.reshape(lstm_enhanced, [-1, 2 * self.dim])
+        sequence_flat = tf.reshape(sequence_enhanced, [-1, 2 * self.dim])
 
         # Concatenate all features for the final gating mechanism
-        combined = tf.concat([cnn_flat, lstm_flat, cnn_proj], axis=-1)
+        combined = tf.concat([cnn_flat, sequence_flat, cnn_proj], axis=-1)
 
         # Gating mechanism to control information flow
         pre_gated = self.pre_gate(combined)
