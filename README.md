@@ -18,6 +18,20 @@ The core of SynapticIDS is a hybrid model that processes network data in two par
 The outputs from both branches are then merged using a **Transformer Fusion** mechanism before being passed through dense layers for the final classification, determining whether the traffic is benign or malicious.
 
 ***
+## 🏆 Model Performance
+
+The model was evaluated on the UNSW-NB15 test set, achieving strong results in binary classification (Normal vs. Attack). The key metrics are summarized below:
+
+| Metric         | Score |
+| :------------- | :---- |
+| **Accuracy** | 90.7% |
+| **F1-Score** | 90.8% |
+| **Precision** | 91.2% |
+| **Recall** | 90.7% |
+
+These results demonstrate the model's high effectiveness in distinguishing between benign and malicious network traffic.
+
+***
 
 ## ✨ Implemented Features
 
@@ -40,7 +54,7 @@ The outputs from both branches are then merged using a **Transformer Fusion** me
 
 1.  **Clone the repository:**
     ```bash
-    git clone <YOUR_REPOSITORY_URL>
+    git clone https://github.com/esilvei/SynapticIDS/
     cd SynapticIDS
     ```
 
