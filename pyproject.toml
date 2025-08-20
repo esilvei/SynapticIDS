@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
+    "apache-airflow>=3.0.4",
     "boruta>=0.4.3",
     "fastparquet>=2024.11.0",
     "kaggle>=1.7.4.5",
