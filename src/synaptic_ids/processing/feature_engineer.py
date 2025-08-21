@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -56,8 +56,7 @@ class UNSWNB15FeatureEngineer:
         print("Fitting Feature Engineer...")
         df_processed = df.copy()
 
-        # Step 1: Handle rare classes and prepare target column
-        df_processed = self._remove_rare_classes(df_processed)
+        # Step 1: Prepare target column
         if self.mode == "multiclass":
             self.label_encoder.fit(df_processed[self.target_col])
             df_processed[self.target_col] = self.label_encoder.transform(
@@ -67,8 +66,6 @@ class UNSWNB15FeatureEngineer:
         # Prepare data for feature engineering
         x = df_processed.drop(columns=["label", "attack_cat"], errors="ignore")
         y = df_processed[self.target_col]
-
-        # --- FIX STARTS HERE ---
 
         # Step 2: Establish the list of features to be used BEFORE transforming them.
         if self.initial_selected_features:
@@ -111,7 +108,9 @@ class UNSWNB15FeatureEngineer:
         print("Feature Engineer fitted successfully.")
         return self
 
-    def transform(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+    def transform(
+        self, df: pd.DataFrame, is_inference: bool = False
+    ) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
         """
         Applies the learned transformations to new data.
         """
@@ -120,17 +119,18 @@ class UNSWNB15FeatureEngineer:
 
         print(f"Transforming data ({df.shape[0]} samples)...")
         df_processed = df.copy()
-
-        # Apply target encoding if multiclass
-        if self.mode == "multiclass":
-            valid_labels = set(self.label_encoder.classes_)
-            df_processed = df_processed[
-                df_processed[self.target_col].isin(valid_labels)
-            ].copy()
-            df_processed[self.target_col] = self.label_encoder.transform(
-                df_processed[self.target_col]
-            )
-
+        y = None
+        if not is_inference:
+            # Apply target encoding if multiclass
+            if self.mode == "multiclass":
+                valid_labels = set(self.label_encoder.classes_)
+                df_processed = df_processed[
+                    df_processed[self.target_col].isin(valid_labels)
+                ].copy()
+                df_processed[self.target_col] = self.label_encoder.transform(
+                    df_processed[self.target_col]
+                )
+            y = df_processed[self.target_col].astype("int32")
         # Apply feature engineering steps
         df_processed = self._handle_duplicates(df_processed)
         df_processed = self._encode_categoricals(df_processed, is_training=False)
@@ -138,7 +138,6 @@ class UNSWNB15FeatureEngineer:
 
         # Ensure all selected features are present
         x = df_processed.drop(columns=["label", "attack_cat"], errors="ignore")
-        y = df_processed[self.target_col]
 
         for col in self.final_selected_features:
             if col not in x.columns:
@@ -150,20 +149,12 @@ class UNSWNB15FeatureEngineer:
             self.scaler.transform(x),
             columns=self.final_selected_features,
             index=x.index,
-        )
-
-        # Optimize dtypes
-        x_scaled = x_scaled.astype("float32")
-        y = y.astype("int32")
+        ).astype("float32")
+        # Ensure the index is preserved
+        if y is not None:
+            x_scaled = x_scaled.loc[y.index]
 
         return x_scaled, y
-
-    def _remove_rare_classes(self, df: pd.DataFrame) -> pd.DataFrame:
-        if self.mode == "multiclass":
-            class_freq = df[self.target_col].value_counts(normalize=True)
-            rare_classes = class_freq[class_freq < 0.05].index
-            return df[~df[self.target_col].isin(rare_classes)]
-        return df
 
     def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         features_to_check = [

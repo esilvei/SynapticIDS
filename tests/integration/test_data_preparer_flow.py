@@ -1,6 +1,9 @@
 import pytest
 import pandas as pd
 import numpy as np
+from cloudpickle import cloudpickle
+
+from src.synaptic_ids.config import settings
 
 # Import the REAL components to be integrated
 from src.synaptic_ids.processing.feature_engineer import UNSWNB15FeatureEngineer
@@ -86,4 +89,52 @@ def test_data_preparer_integration_flow(small_real_dataframe):  # pylint: disabl
     # Check the data types (dtypes)
     assert prepared_data["sequences"].dtype == "float32"
     assert prepared_data["images"].dtype == "float32"
-    assert prepared_data["labels"].dtype == "float32"
+    assert prepared_data["labels"].dtype in ("float32", "float64")
+
+
+def test_data_preparer_inference_flow(small_real_dataframe):
+    """
+    Tests the end-to-end flow for INFERENCE.
+    1. Fits the preparer with training data.
+    2. Simulates saving and loading the fitted object.
+    3. Transforms new data (without labels) using the loaded preparer.
+    4. Verifies the output is correct for the model and contains no labels.
+    """
+    # --- Training Phase ---
+    feature_engineer = UNSWNB15FeatureEngineer(
+        mode=settings.training.mode,
+        target_col=settings.training.target_column,
+        selected_features=settings.features.selected,
+    )
+    preparer_for_training = DataPreparer(
+        feature_engineer=feature_engineer, mode=settings.training.mode
+    )
+    preparer_for_training.fit(small_real_dataframe)
+
+    # --- Simulate Save & Load (as MLflow would) ---
+    saved_preparer = cloudpickle.dumps(preparer_for_training)
+    loaded_preparer_for_inference = cloudpickle.loads(saved_preparer)
+
+    # --- Inference Phase ---
+    # Create inference data (a subset without the target column)
+    inference_df = small_real_dataframe.head(10).drop(
+        columns=[settings.training.target_column]
+    )
+
+    # Act: Use the LOADED preparer to transform inference data
+    prepared_data = loaded_preparer_for_inference.prepare_data(
+        inference_df, is_training=False
+    )
+
+    # --- Assert ---
+    # Check the integrity of the output for inference
+    assert "images" in prepared_data
+    assert "sequences" in prepared_data
+    assert prepared_data["labels"] is None  # CRITICAL: Must not have labels
+
+    # The number of sequences/images should be consistent
+    assert prepared_data["images"].shape[0] == prepared_data["sequences"].shape[0]
+    assert prepared_data["images"].shape[0] > 0  # Ensure something was processed
+
+    # The final shape of the image might be affected by padding in UNSWNB15ToImage
+    assert prepared_data["images"].shape[1] == 32

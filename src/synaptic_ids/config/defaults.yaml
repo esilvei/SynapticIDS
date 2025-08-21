@@ -56,3 +56,8 @@ features:
     - 'jitter_ratio'
     - 'port_conn_ratio'
     - 'ack_error_ratio'
+
+# --- API Configuration ---
+api:
+  mlflow_model_uri: "models:/m-a5a2fcde52404f4a8f50b229df3bc559"
+  model_mode: "binary"

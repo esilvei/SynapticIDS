@@ -1,10 +1,17 @@
-from typing import List, Tuple, Optional
+# pylint: disable=too-many-ancestors
+"""
+This module defines a custom Keras layer for transforming tabular data into an
+image representation, specifically for the UNSW-NB15 dataset.
+"""
+
+from typing import List, Tuple, Optional, Dict, Any
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras  # Use explicit import for Keras components
+import keras
 
 
+@keras.saving.register_keras_serializable()
 class UNSWNB15ToImage(keras.layers.Layer):
     """
     A TensorFlow layer that transforms tabular data into an image representation.
@@ -12,7 +19,10 @@ class UNSWNB15ToImage(keras.layers.Layer):
     """
 
     def __init__(
-        self, feature_names: List[str], image_size: Tuple[int, int] = (32, 32), **kwargs
+        self,
+        feature_names: List[str],
+        image_size: Tuple[int, int] = (32, 32),
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.feature_names = feature_names
@@ -56,6 +66,17 @@ class UNSWNB15ToImage(keras.layers.Layer):
             trainable=False,
         )
         super().build(input_shape)
+
+    def get_config(self) -> Dict[str, Any]:
+        """Returns the serializable config of the layer."""
+        config = super().get_config()
+        config.update(
+            {
+                "feature_names": self.feature_names,
+                "image_size": self.image_size,
+            }
+        )
+        return config
 
     @tf.function
     def _initialize_and_update(self, features: tf.Tensor):
@@ -122,11 +143,10 @@ class UNSWNB15ToImage(keras.layers.Layer):
         images = tf.reshape(padded, [batch_size, side_length, side_length, 1])
         return tf.image.resize(images, self.image_size, method="bilinear")
 
+    # pylint: disable=arguments-differ
     @tf.function
     def call(self, inputs: tf.Tensor, training: Optional[bool] = None) -> tf.Tensor:
         """Defines the forward pass logic for the layer."""
-        # --- FIX: Handle the 'None' case for the training argument ---
-        # This resolves the mypy [arg-type] error.
         if training is None:
             # Default to Keras' learning phase global flag
             training = keras.backend.learning_phase()

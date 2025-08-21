@@ -53,7 +53,7 @@ def test_generate_offline_correct_shape_and_count(
         4,
     )  # (num_sequences, seq_length, num_temporal_features)
     assert labels.shape == (6,)
-    assert valid_indices.shape == (6,)
+    assert len(valid_indices) == 6
     assert sequences.dtype == np.float32
     assert labels.dtype == np.int32
 
@@ -98,7 +98,43 @@ def test_generate_offline_with_insufficient_data(sequence_generator_instance):
     assert valid_indices.size == 0
 
 
+def test_generate_offline_no_labels(sequence_generator_instance, sample_batch_data):
+    """
+    Tests that offline generation works correctly when y is None.
+    """
+    # Arrange
+    generator = sequence_generator_instance
+    x_data, _ = sample_batch_data  # Ignore labels
+
+    # Act: Call the generate function with y=None
+    sequences, labels, valid_indices = generator.generate(x_data, y=None)
+
+    # Assert
+    # Sequences should be generated normally
+    assert sequences.shape == (6, 5, 4)
+    # The labels output should be None
+    assert labels is None
+    # Valid indices should still be returned
+    assert len(valid_indices) == 6
+
+
 ## Test Suite for Online (Single Instance) Mode
+def test_generate_online_no_labels(sequence_generator_instance):
+    """
+    Tests that online mode works correctly when y is None.
+    """
+    # Arrange
+    generator = sequence_generator_instance
+    x_single = pd.DataFrame([[1, 2, 3, 4]], columns=["dur", "sbytes", "dbytes", "rate"])
+
+    # Act: Call the generate function with y=None
+    sequences, labels, valid_indices = generator.generate(x_single, y=None)
+
+    # Assert
+    assert sequences.shape == (1, 5, 4)
+    # The labels output should be None
+    assert labels is None
+    assert len(valid_indices) == 1
 
 
 def test_generate_online_correct_shape_and_replication(sequence_generator_instance):
