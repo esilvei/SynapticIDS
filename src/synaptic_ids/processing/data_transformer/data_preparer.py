@@ -65,8 +65,9 @@ class DataPreparer:
         if not self.is_fitted or self.image_transformer is None:
             raise RuntimeError("DataPreparer must be fitted before preparing data.")
 
+        is_inference = not is_training
         # Step 1: Feature Engineering
-        x_eng, y_eng = self.feature_engineer.transform(df)
+        x_eng, y_eng = self.feature_engineer.transform(df, is_inference=is_inference)
 
         # Step 2: Generate Sequences from the engineered features
         x_sequences, y_sequences, valid_indices = self.sequence_generator.generate(
@@ -78,7 +79,7 @@ class DataPreparer:
             return {
                 "images": np.array([]),
                 "sequences": np.array([]),
-                "labels": np.array([]),
+                "labels": None,
             }
 
         # Step 3: Generate Images for the corresponding valid sequence endpoints
@@ -86,16 +87,17 @@ class DataPreparer:
         x_images = self.image_transformer(x_images_source.values, training=is_training)
 
         # Step 4: One-hot encode labels if in multiclass mode
-        labels = y_sequences
-        if self.mode == "multiclass":
-            # Ensure the label encoder is fitted before using it
-            if not hasattr(self.feature_engineer.label_encoder, "classes_"):
-                raise RuntimeError("LabelEncoder in FeatureEngineer is not fitted.")
-            num_classes = len(self.feature_engineer.label_encoder.classes_)
-            labels = tf.keras.utils.to_categorical(y_sequences, num_classes=num_classes)
-
+        labels = None
+        if y_sequences is not None:
+            if self.mode == "multiclass":
+                num_classes = len(self.feature_engineer.label_encoder.classes_)
+                labels = tf.keras.utils.to_categorical(
+                    y_sequences, num_classes=num_classes
+                )
+            else:
+                labels = np.array(y_sequences, dtype="int32")
         return {
             "images": np.array(x_images, dtype="float32"),
             "sequences": np.array(x_sequences, dtype="float32"),
-            "labels": np.array(labels, dtype="float32"),
+            "labels": labels,
         }

@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ class SequenceGenerator:
         ]
 
     def generate(
-        self, x: pd.DataFrame, y: pd.Series
+        self, x: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Takes engineered features and labels and generates sequences. Adapts
@@ -63,7 +63,7 @@ class SequenceGenerator:
         # Filters by available temporal features
         available_temporal = [f for f in self.temporal_features if f in x.columns]
         x_temporal = x[available_temporal].values
-        y_np = y.values
+        y_np = y.values if y is not None else None
 
         # Handles online (single prediction) vs. offline (batch) cases
         if x.shape[0] == 1:
@@ -90,8 +90,10 @@ class SequenceGenerator:
 
             sequences = np.array([x_temporal[idx] for idx in indices_np])
             # The label for a sequence is the label of its last element
-            labels = y_np[indices_np[:, -1]]
-            valid_indices = indices_np[:, -1]
+            labels = y_np[indices_np[:, -1]] if y_np is not None else None
+            valid_indices = indices_np[:, -1].tolist()
 
         print(f"Generated {len(sequences)} sequences.")
-        return sequences.astype("float32"), labels.astype("int32"), valid_indices
+        final_sequences = sequences.astype("float32")
+        final_labels = labels.astype("int32") if labels is not None else None
+        return final_sequences, final_labels, valid_indices

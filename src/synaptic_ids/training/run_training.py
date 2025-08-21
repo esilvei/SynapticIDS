@@ -62,8 +62,8 @@ def prepare_data(train_df, val_df, test_df):
     )
     data_preparer.fit(train_df)
     train_data = data_preparer.prepare_data(train_df, is_training=True)
-    val_data = data_preparer.prepare_data(val_df)
-    test_data = data_preparer.prepare_data(test_df)
+    val_data = data_preparer.prepare_data(val_df, is_training=True)
+    test_data = data_preparer.prepare_data(test_df, is_training=True)
     return train_data, val_data, test_data, data_preparer
 
 
