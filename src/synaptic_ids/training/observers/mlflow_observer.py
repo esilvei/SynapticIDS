@@ -30,15 +30,26 @@ class MLflowObserver(TrainingObserver):
         name: str,
         registered_model_name: str,
         input_example: Any = None,
-        pip_requirements_path: str = None,
+        pip_requirements_path: Any = None,
     ):
-        mlflow.tensorflow.log_model(
-            model=model,
-            name=name,
-            registered_model_name=registered_model_name,
-            input_example=input_example,
-            pip_requirements=pip_requirements_path,
-        )
+        # If user passes a TensorFlow/Keras model directly, use the TF flavor.
+        # If it's a custom PythonModel (like our SynapticIDSPipeline), use the pyfunc flavor.
+        if isinstance(model, mlflow.pyfunc.PythonModel):
+            mlflow.pyfunc.log_model(
+                name=name,
+                python_model=model,
+                input_example=input_example,
+                pip_requirements=pip_requirements_path,
+                registered_model_name=registered_model_name,
+            )
+        else:
+            mlflow.tensorflow.log_model(
+                model=model,
+                name=name,
+                registered_model_name=registered_model_name,
+                input_example=input_example,
+                pip_requirements=pip_requirements_path,
+            )
         print("MLflow Observer: Model logged.")
 
     def on_run_end(self):

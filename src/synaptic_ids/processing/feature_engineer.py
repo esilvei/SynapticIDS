@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.ensemble import IsolationForest
 from lightgbm import LGBMClassifier
 from boruta import BorutaPy
@@ -35,7 +35,7 @@ class UNSWNB15FeatureEngineer:
         self.freq_encoders: Dict[str, pd.Series] = {}
         self.label_encoder = LabelEncoder()
         self.final_selected_features: List[str] = []  # To be populated by fit()
-        self.scaler = StandardScaler()
+        self.scaler = MinMaxScaler()
         self.is_fitted = False
         self.log_features = [
             "sbytes",
@@ -192,8 +192,8 @@ class UNSWNB15FeatureEngineer:
     def _create_interaction_features(self, df: pd.DataFrame) -> pd.DataFrame:
         eps = 1e-8
         for col in self.log_features:
-            if col in df.columns and df[col].min() >= 0:
-                df[col] = np.log1p(df[col])
+            if col in df.columns:
+                df[col] = np.log1p(df[col].clip(lower=0))
 
         if "sbytes" in df.columns and "dbytes" in df.columns:
             df["sbytes_dbytes_ratio"] = df["sbytes"] / (df["dbytes"] + eps)

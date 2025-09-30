@@ -19,6 +19,7 @@ from src.synaptic_ids.processing.feature_engineer import UNSWNB15FeatureEngineer
 from src.synaptic_ids.processing.data_transformer.data_preparer import DataPreparer
 from src.synaptic_ids.training.model.model_builder import SynapticIDSBuilder
 from src.synaptic_ids.training.model.model_trainer import ModelTrainer
+from src.synaptic_ids.training.model.pipeline import SynapticIDSPipeline
 from src.synaptic_ids.training.analysis.analysis import (
     evaluate_model,
     display_results,
@@ -107,7 +108,7 @@ def build_and_train_model(train_data, val_data, data_preparer):
     return trainer, history
 
 
-def evaluate_and_log_results(trainer, history, test_data, observer):
+def evaluate_and_log_results(trainer, history, test_data, preparer, test_df,observer):
     """Evaluates the model and logs artifacts and metrics."""
     print("\nSTEP 5 & 6: Evaluating, analyzing, and logging results...")
     results_dir = os.path.join(settings.paths.processed_data, "results")
@@ -136,22 +137,34 @@ def evaluate_and_log_results(trainer, history, test_data, observer):
     observer.on_artifact_logged(history_plot_path, "plots")
 
     # Log model
-    input_example = {
-        "image_input": test_data["images"][:1],
-        "sequence_input": test_data["sequences"][:1],
-    }
-    requirements_path = os.path.join(settings.paths.root, "requirements.txt")
+    pipeline_model = SynapticIDSPipeline(
+        model = trainer.model,
+        data_preparer=preparer
+    )
+    # Prepare a clean input example for MLflow signature inference
+    input_example_df = test_df.head(1).copy()
+    input_example_df = input_example_df.drop(columns=['attack_cat', 'label'], errors='ignore')
+    # Ensure categorical columns are strings (avoid Pandas 'category' dtype issues)
+    for col in input_example_df.select_dtypes(include=["category"]).columns:
+        input_example_df[col] = input_example_df[col].astype(str)
+    # Cast integer columns to float64 to avoid MLflow integer-missing-value caveat
+    int_cols = input_example_df.select_dtypes(include=["int", "int32", "int64"]).columns
+    for col in int_cols:
+        input_example_df[col] = input_example_df[col].astype("float64")
+
+    # Provide explicit pip requirements to avoid MLflow auto inference issues
+    requirements_path = settings.paths.requirements
+
     observer.on_model_logged(
-        model=trainer.model,
-        name="synaptic-ids-model",
-        registered_model_name="SynapticIDS",
-        input_example=input_example,
-        pip_requirements_path=requirements_path,
+        model=pipeline_model,
+        name="synaptic_ids_pipeline",
+        registered_model_name="SynapticIDSPipeline",
+        input_example=input_example_df,
+        pip_requirements_path=requirements_path
     )
 
-
 def main():
-    """Main orchestrator function for the model training and evaluation pipeline."""
+    """The main orchestrator function for the model training and evaluation pipeline."""
     print("--- SYNAPTIC-IDS: STARTING END-TO-END TRAINING PIPELINE ---")
     mlflow.set_experiment("SynapticIDS")
     run_name = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -169,7 +182,7 @@ def main():
         trainer, history = build_and_train_model(train_data, val_data, preparer)
 
         if trainer and history:
-            evaluate_and_log_results(trainer, history, test_data, observer)
+            evaluate_and_log_results(trainer, history, test_data, preparer, test_df, observer)
 
         print("\n--- SYNAPTIC-IDS: TRAINING PIPELINE COMPLETE ---")
 
