@@ -51,7 +51,9 @@ def load_settings() -> SimpleNamespace:
     settings_namespace.paths.model_save = str(
         project_root / settings_namespace.paths.model_save
     )
-
+    settings_namespace.paths.requirements = str(
+        project_root / settings_namespace.paths.requirements
+    )
     return settings_namespace
 
 

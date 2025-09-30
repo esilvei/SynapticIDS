@@ -9,11 +9,12 @@ paths:
   raw_data: "data/raw"
   model_save: "models/synaptic_ids_model.h5"
   ml_runs: "ml_runs"
+  requirements: "requirements.txt"
 # --- Model & Training Parameters ---
 training:
   mode: "binary"
   target_column: "label"
-  epochs: 2
+  epochs: 30
   batch_size: 32 # test low values
   use_class_weights: None
   test_size: 0.1   # 10% of the data for the test set
@@ -59,5 +60,6 @@ features:
 
 # --- API Configuration ---
 api:
-  mlflow_model_uri: "models:/m-a5a2fcde52404f4a8f50b229df3bc559"
+  mlflow_model_uri: "models:/SynapticIDSPipeline/latest"
   model_mode: "binary"
+  database_url: "sqlite:///./synaptic-ids.db"

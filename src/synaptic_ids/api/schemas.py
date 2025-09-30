@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class TrafficRecord(BaseModel):
@@ -39,16 +39,16 @@ class TrafficRecord(BaseModel):
     dtcpb: Optional[int] = Field(
         None, description="Destination TCP base sequence number"
     )
-    smeansz: int = Field(..., description="Average packet size from sender")
-    dmeansz: int = Field(..., description="Average packet size from receiver")
+    smean: int = Field(..., description="Average packet size from sender")
+    dmean: int = Field(..., description="Average packet size from receiver")
     trans_depth: Optional[int] = Field(None, description="Depth of an HTTP transaction")
-    res_bdy_len: Optional[int] = Field(None, description="HTTP response body size")
+    response_body_len: Optional[int] = Field(None, description="HTTP response body size")
     sjit: float = Field(..., description="Source jitter (ms)")
     djit: float = Field(..., description="Destination jitter (ms)")
     stime: int = Field(..., description="Start timestamp")
     ltime: int = Field(..., description="End timestamp")
-    sintpkt: float = Field(..., description="Average time between source packets")
-    dintpkt: float = Field(..., description="Average time between destination packets")
+    sinpkt: float = Field(..., description="Average time between source packets")
+    dinpkt: float = Field(..., description="Average time between destination packets")
     tcprtt: Optional[float] = Field(None, description="TCP connection RTT")
     synack: Optional[float] = Field(None, description="Time from SYN to ACK")
     ackdat: Optional[float] = Field(None, description="Time from ACK to data")
@@ -82,9 +82,10 @@ class TrafficRecord(BaseModel):
     ct_dst_src_ltm: int = Field(
         ..., description="Connection count to the same source/destination IP pair"
     )
+    rate: float = Field(..., description="Packets per second")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "proto": "tcp",
                 "state": "FIN",
@@ -100,14 +101,14 @@ class TrafficRecord(BaseModel):
                 "dload": 160000000.0,
                 "spkts": 1,
                 "dpkts": 1,
-                "smeansz": 100,
-                "dmeansz": 200,
+                "smean": 100,
+                "dmean": 200,
                 "sjit": 0.0,
                 "djit": 0.0,
                 "stime": 1421927414,
                 "ltime": 1421927414,
-                "sintpkt": 0.0,
-                "dintpkt": 0.0,
+                "sinpkt": 0.0,
+                "dinpkt:": 0.0,
                 "is_sm_ips_ports": 0,
                 "ct_srv_src": 1,
                 "ct_srv_dst": 1,
@@ -116,19 +117,19 @@ class TrafficRecord(BaseModel):
                 "ct_src_dport_ltm": 1,
                 "ct_dst_sport_ltm": 1,
                 "ct_dst_src_ltm": 1,
+                "rate": 1000000.0,
+                "response_body_len": 0
             }
         }
-
+    )
 
 class PredictionInput(BaseModel):
     """
     Schema for the prediction input, containing a list of traffic records.
     """
-
     records: List[TrafficRecord] = Field(
         ..., description="List of traffic records to classify"
     )
-
 
 class PredictionResult(BaseModel):
     """

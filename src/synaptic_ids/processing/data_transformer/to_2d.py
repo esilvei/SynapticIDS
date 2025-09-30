@@ -144,7 +144,7 @@ class UNSWNB15ToImage(keras.layers.Layer):
         return tf.image.resize(images, self.image_size, method="bilinear")
 
     # pylint: disable=arguments-differ
-    @tf.function
+    @tf.function(reduce_retracing=True)
     def call(self, inputs: tf.Tensor, training: Optional[bool] = None) -> tf.Tensor:
         """Defines the forward pass logic for the layer."""
         if training is None:

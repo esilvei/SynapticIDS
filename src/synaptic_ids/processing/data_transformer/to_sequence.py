@@ -46,11 +46,11 @@ class SequenceGenerator:
         ]
 
     def generate(
-        self, x: pd.DataFrame, y: Optional[pd.Series] = None
+            self, x: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Takes engineered features and labels and generates sequences. Adapts
-        its strategy based on the input data size.
+        its strategy based on whether labels are provided (training vs. inference).
 
         Args:
             x (pd.DataFrame): The input features.
@@ -64,36 +64,34 @@ class SequenceGenerator:
         available_temporal = [f for f in self.temporal_features if f in x.columns]
         x_temporal = x[available_temporal].values
         y_np = y.values if y is not None else None
+        n_samples = x.shape[0]
 
-        # Handles online (single prediction) vs. offline (batch) cases
-        if x.shape[0] == 1:
-            # Online case: replicate the single data point to form a sequence
-            print("Online mode: replicating single data point for sequence.")
-            sequences = np.repeat(x_temporal, self.sequence_length, axis=0)
-            sequences = sequences.reshape(
-                1, self.sequence_length, -1
-            )  # Reshape to (batch_size, seq_len, n_features)
-            labels = y_np
-            valid_indices = x.index.values
-        else:
-            # Offline case: use a sliding window to generate sequences, which is
-            # more efficient and realistic than K-Means for sequential data.
+        if y is not None:
             print("Offline mode: using sliding window to generate sequences.")
-            indices_list: List[List[int]] = []
-            for i in range(len(x_temporal) - self.sequence_length + 1):
-                indices_list.append(list(range(i, i + self.sequence_length)))
-
-            if not indices_list:
+            if n_samples < self.sequence_length:
                 return np.array([]), np.array([]), np.array([])
 
-            indices_np = np.array(indices_list)
+            indices_list: List[List[int]] = []
+            for i in range(n_samples - self.sequence_length + 1):
+                indices_list.append(list(range(i, i + self.sequence_length)))
 
+            indices_np = np.array(indices_list)
             sequences = np.array([x_temporal[idx] for idx in indices_np])
-            # The label for a sequence is the label of its last element
-            labels = y_np[indices_np[:, -1]] if y_np is not None else None
-            valid_indices = indices_np[:, -1].tolist()
+            # A label de uma sequência é a label do seu último elemento.
+            labels = y_np[indices_np[:, -1]]
+            valid_indices = indices_np[:, -1]
+        else:
+            print(f"Online mode: handling batch of {n_samples} samples.")
+
+            sequences_temp = x_temporal[:, np.newaxis, :]
+
+            sequences = np.repeat(sequences_temp, self.sequence_length, axis=1)
+
+            labels = None
+            valid_indices = np.arange(n_samples)
 
         print(f"Generated {len(sequences)} sequences.")
         final_sequences = sequences.astype("float32")
         final_labels = labels.astype("int32") if labels is not None else None
+
         return final_sequences, final_labels, valid_indices
