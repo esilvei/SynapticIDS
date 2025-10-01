@@ -1,3 +1,4 @@
+
 # SynapticIDS: A Hybrid Deep Learning Intrusion Detection System 🛡️
 
 ## 🚀 Overview
@@ -25,6 +26,7 @@ The outputs from both branches are merged using a **Transformer Fusion** mechani
 * **🚀 High-Performance API**: A RESTful API built with **FastAPI** to serve the trained model for real-time, batch predictions.
 * **📊 Experiment Management**: Full integration with **MLflow** to track experiments, manage model versions, and deploy models seamlessly from the registry.
 * **🗄️ Database Integration**: All predictions are automatically logged to a **SQLite** database using SQLAlchemy for auditing and retrieval.
+* **✅ Robust Testing Suite**: Includes unit and integration tests (`pytest`) for the API layer, ensuring code reliability and correctness.
 * **⚡ High-Speed Dependency Management**: Uses **UV** for fast and efficient virtual environment and package management.
 * **✅ Code Quality**: Pre-commit hooks are configured to enforce linting and code formatting standards automatically.
 
@@ -74,16 +76,18 @@ Follow these steps to train the model and run the API.
 Before running the API, you must train the model. This script will run the full pipeline and register the final model artifact in the local MLflow registry (`mlruns/`).
 ```bash
 python src/synaptic_ids/training/run_training.py
-```
+````
 
 **2. Run the API Server:**
 Once the model is trained, start the API server using Uvicorn.
+
 ```bash
 uvicorn src.synaptic_ids.api.main:app --reload
 ```
+
 The server will start on `http://127.0.0.1:8000`. You can access the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
-***
+-----
 
 ## 🔌 API Usage
 
@@ -91,20 +95,21 @@ The API is designed to receive a list of traffic records and return a prediction
 
 ### API Endpoints
 
-| Method | Endpoint                    | Description                                         |
-| :----- | :-------------------------- | :-------------------------------------------------- |
-| `GET`  | `/`                         | Health check to confirm the API is running.         |
-| `POST` | `/predict/`                 | Submits one or more traffic records for classification. |
-| `GET`  | `/predictions/`             | Retrieves a paginated list of all stored predictions. |
+| Method | Endpoint                       | Description                                         |
+| :----- | :----------------------------- | :-------------------------------------------------- |
+| `GET`  | `/`                            | Health check to confirm the API is running.         |
+| `POST` | `/predictions/`                | Submits one or more traffic records for classification. |
+| `GET`  | `/predictions/`                | Retrieves a paginated list of all stored predictions. |
 | `GET`  | `/predictions/{prediction_id}` | Retrieves a single prediction by its unique ID.     |
 
 ### Example: Making a Prediction with `curl`
 
-You can send a `POST` request to the `/predict/` endpoint with a list of records.
+You can send a `POST` request to the `/predictions/` endpoint with a list of records.
 
 **Example of an "Attack" record:**
+
 ```bash
-curl -X POST "[http://127.0.0.1:8000/predict/](http://127.0.0.1:8000/predict/)" -H "Content-Type: application/json" -d '{
+curl -X POST "[http://127.0.0.1:8000/predictions/](http://127.0.0.1:8000/predictions/)" -H "Content-Type: application/json" -d '{
   "records": [
     {
       "proto": "tcp", "state": "FIN", "dur": 0.088159, "sbytes": 568, "dbytes": 3130,
@@ -122,7 +127,9 @@ curl -X POST "[http://127.0.0.1:8000/predict/](http://127.0.0.1:8000/predict/)" 
   ]
 }'
 ```
+
 **Expected Response:**
+
 ```json
 {
   "predictions": [
@@ -130,61 +137,73 @@ curl -X POST "[http://127.0.0.1:8000/predict/](http://127.0.0.1:8000/predict/)" 
       "label": "Attack",
       "prediction": 1,
       "confidence": 0.9619,
-      "probabilities": null
+      "probabilities": {
+        "Normal": 0.0381,
+        "Attack": 0.9619
+      }
     }
   ]
 }
 ```
 
-***
+-----
 
 ## 🖥️ Using the MLflow UI
 
 To visualize experiment results, run the MLflow UI pointing to the project's database:
+
 ```bash
 mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
 ```
+
 Access the dashboard at `http://127.0.0.1:5000`.
 
-***
+-----
 
 ## 🗺️ Roadmap & Next Steps
 
 This section outlines the plan for evolving SynapticIDS into a fully-fledged, production-ready system.
 
 ### Phase 1: Enhance Testing and Caching
--   **Goal**: Increase system reliability and performance.
--   **Tasks**:
-    1.  **Unit Tests for API**: Implement a suite of unit tests for the API layer, covering endpoints, CRUD operations, and business logic to ensure robustness.
+
+  - **Goal**: Increase system reliability and performance.
+  - **Tasks**:
+    1.  **Unit & Integration Tests for API (✅ Completed)**: A comprehensive test suite covering services, CRUD operations, and API endpoints has been implemented to ensure code quality and robustness.
     2.  **Integrate Redis for Caching**: Use **Redis** as a high-speed, in-memory cache for recent predictions. This will reduce database load for repeated queries and speed up response times.
 
 ### Phase 2: Real-time Sequential Analysis
--   **Goal**: Leverage the full power of the sequential model by analyzing true, time-ordered sequences of traffic.
--   **Tasks**:
+
+  - **Goal**: Leverage the full power of the sequential model by analyzing true, time-ordered sequences of traffic.
+  - **Tasks**:
     1.  **Stateful Session Tracking with Redis**: For each unique source IP or session, store the last `N` traffic records in a Redis List or Stream.
     2.  **Adapt API for True Sequences**: Evolve the API so that when a new record arrives, it retrieves the recent records from Redis for that session, forms a true sequence, and sends it to the model. This will enable more context-aware and accurate predictions.
 
 ### Phase 3: Containerization & Local Orchestration
--   **Goal**: Ensure consistent and portable deployments by packaging the application.
--   **Tasks**:
+
+  - **Goal**: Ensure consistent and portable deployments by packaging the application.
+  - **Tasks**:
     1.  **Finalize `Dockerfile`**: Create a multi-stage `Dockerfile` to build a lean, optimized production image for the FastAPI application.
     2.  **Enhance `docker-compose.yaml`**: Update the `docker-compose.yaml` to orchestrate a multi-service environment including the API, Redis, and a **PostgreSQL** database as a more robust production alternative to SQLite.
 
 ### Phase 4: Cloud Deployment with IaC and Kubernetes
--   **Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
--   **Tasks**:
+
+  - **Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
+  - **Tasks**:
     1.  **Infrastructure as Code (IaC) with Terraform**: Write **Terraform** scripts to automatically provision a managed Kubernetes cluster (e.g., GKE on GCP), a managed Redis instance, and a managed PostgreSQL database.
     2.  **Orchestration with Kubernetes (K8s)**:
-        * Write Kubernetes manifest files (`Deployment`, `Service`, `Ingress`) to deploy the containerized services.
-        * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
+          * Write Kubernetes manifest files (`Deployment`, `Service`, `Ingress`) to deploy the containerized services.
+          * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
     3.  **CI/CD Pipeline**: Set up a CI/CD pipeline (e.g., using GitHub Actions) to automate testing, building Docker images, and deploying updates to the Kubernetes cluster.
 
 ### Phase 5: Advanced MLOps and Data Management
--   **Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
--   **Tasks**:
+
+  - **Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
+  - **Tasks**:
     1.  **Data and Model Versioning with DVC**: Integrate **DVC (Data Version Control)** to work alongside Git. This will allow for versioning of large datasets and model files, ensuring full reproducibility of experiments.
     2.  **Automated Retraining Pipeline**: Design and implement a system for automated model retraining. This pipeline would:
-        * Monitor for new, labeled data (e.g., from a production feedback loop).
-        * Trigger the training script automatically when a sufficient amount of new data is available.
-        * Evaluate the newly trained model against a holdout dataset.
-        * If the new model shows improved performance, automatically register it in the MLflow Model Registry and potentially flag it for promotion to production.
+          * Monitor for new, labeled data (e.g., from a production feedback loop).
+          * Trigger the training script automatically when a sufficient amount of new data is available.
+          * Evaluate the newly trained model against a holdout dataset.
+          * If the new model shows improved performance, automatically register it in the MLflow Model Registry and potentially flag it for promotion to production.
+
+<!-- end list -->
