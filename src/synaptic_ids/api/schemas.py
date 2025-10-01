@@ -42,7 +42,9 @@ class TrafficRecord(BaseModel):
     smean: int = Field(..., description="Average packet size from sender")
     dmean: int = Field(..., description="Average packet size from receiver")
     trans_depth: Optional[int] = Field(None, description="Depth of an HTTP transaction")
-    response_body_len: Optional[int] = Field(None, description="HTTP response body size")
+    response_body_len: Optional[int] = Field(
+        None, description="HTTP response body size"
+    )
     sjit: float = Field(..., description="Source jitter (ms)")
     djit: float = Field(..., description="Destination jitter (ms)")
     stime: int = Field(..., description="Start timestamp")
@@ -118,18 +120,21 @@ class TrafficRecord(BaseModel):
                 "ct_dst_sport_ltm": 1,
                 "ct_dst_src_ltm": 1,
                 "rate": 1000000.0,
-                "response_body_len": 0
+                "response_body_len": 0,
             }
         }
     )
+
 
 class PredictionInput(BaseModel):
     """
     Schema for the prediction input, containing a list of traffic records.
     """
+
     records: List[TrafficRecord] = Field(
         ..., description="List of traffic records to classify"
     )
+
 
 class PredictionResult(BaseModel):
     """

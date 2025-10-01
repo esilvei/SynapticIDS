@@ -169,5 +169,10 @@ def test_main_pipeline_flow(
     mock_prepare.assert_called_once_with("train_df", "val_df", "test_df")
     mock_build.assert_called_once_with("train_data", "val_data", "preparer")
     mock_evaluate.assert_called_once_with(
-        "trainer", "history", "test_data", mock_observer.return_value
+        "trainer",
+        "history",
+        "test_data",
+        "preparer",
+        "test_df",
+        mock_observer.return_value,
     )

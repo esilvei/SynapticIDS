@@ -46,7 +46,7 @@ class SequenceGenerator:
         ]
 
     def generate(
-            self, x: pd.DataFrame, y: Optional[pd.Series] = None
+        self, x: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Takes engineered features and labels and generates sequences. Adapts

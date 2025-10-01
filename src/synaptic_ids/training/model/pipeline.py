@@ -17,6 +17,7 @@ class SynapticIDSPipeline(mlflow.pyfunc.PythonModel):
         data_preparer: The fitted DataPreparer object, containing the scaler
                        and all transformation logic.
     """
+
     def __init__(self, model, data_preparer: DataPreparer):
         self.model = model
         self.data_preparer = data_preparer
@@ -37,7 +38,9 @@ class SynapticIDSPipeline(mlflow.pyfunc.PythonModel):
         """
         # The preprocessing logic is now self-contained within the model artifact,
         # using the `data_preparer` that was fitted on the training data.
-        prepared_data = self.data_preparer.prepare_data(model_input.copy(), is_training=False)
+        prepared_data = self.data_preparer.prepare_data(
+            model_input.copy(), is_training=False
+        )
 
         # The output of prepare_data is a dictionary; we need the list of inputs
         # that the Keras model expects.
