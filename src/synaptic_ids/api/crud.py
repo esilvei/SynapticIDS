@@ -2,11 +2,12 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from . import models, schemas
 
+
 def create_prediction_with_record(
-        db: Session,
-        *,
-        record_in: schemas.TrafficRecord,
-        result_in: schemas.PredictionResult
+    db: Session,
+    *,
+    record_in: schemas.TrafficRecord,
+    result_in: schemas.PredictionResult,
 ) -> models.Prediction:
     """
     Creates a new Prediction and its associated TrafficRecord in the database.
@@ -24,12 +25,12 @@ def create_prediction_with_record(
         and other generated values.
     """
     db_traffic_record = models.TrafficRecord(**record_in.dict())
-    
+
     db_prediction = models.Prediction(
         label=result_in.label,
         prediction=result_in.prediction,
-        confidence= result_in.confidence,
-        traffic_record = db_traffic_record
+        confidence=result_in.confidence,
+        traffic_record=db_traffic_record,
     )
     db.add(db_prediction)
     db.commit()
@@ -37,11 +38,8 @@ def create_prediction_with_record(
 
     return db_prediction
 
-def get_prediction(
-        db: Session,
-        *,
-        prediction_id: int
-) -> Optional[models.Prediction]:
+
+def get_prediction(db: Session, *, prediction_id: int) -> Optional[models.Prediction]:
     """
     Retrieves a single prediction from the database by its primary key.
 
@@ -52,13 +50,15 @@ def get_prediction(
     Returns:
         The SQLAlchemy Prediction object if found, otherwise None.
     """
-    return db.query(models.Prediction).filter(models.Prediction.id == prediction_id).first()
+    return (
+        db.query(models.Prediction)
+        .filter(models.Prediction.id == prediction_id)
+        .first()
+    )
+
 
 def get_predictions(
-    db: Session,
-    *,
-    skip: int = 0,
-    limit: int = 100
+    db: Session, *, skip: int = 0, limit: int = 100
 ) -> List[models.Prediction]:
     """
     Retrieves a list of predictions from the database with pagination.
@@ -71,4 +71,4 @@ def get_predictions(
     Returns:
         A list of SQLAlchemy Prediction objects.
     """
-    return db.query(models.Prediction).offset(skip).limit(limit).all() # type: ignore
+    return db.query(models.Prediction).offset(skip).limit(limit).all()  # type: ignore

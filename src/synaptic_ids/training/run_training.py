@@ -108,7 +108,7 @@ def build_and_train_model(train_data, val_data, data_preparer):
     return trainer, history
 
 
-def evaluate_and_log_results(trainer, history, test_data, preparer, test_df,observer):
+def evaluate_and_log_results(trainer, history, test_data, preparer, test_df, observer):
     """Evaluates the model and logs artifacts and metrics."""
     print("\nSTEP 5 & 6: Evaluating, analyzing, and logging results...")
     results_dir = os.path.join(settings.paths.processed_data, "results")
@@ -137,13 +137,12 @@ def evaluate_and_log_results(trainer, history, test_data, preparer, test_df,obse
     observer.on_artifact_logged(history_plot_path, "plots")
 
     # Log model
-    pipeline_model = SynapticIDSPipeline(
-        model = trainer.model,
-        data_preparer=preparer
-    )
+    pipeline_model = SynapticIDSPipeline(model=trainer.model, data_preparer=preparer)
     # Prepare a clean input example for MLflow signature inference
     input_example_df = test_df.head(1).copy()
-    input_example_df = input_example_df.drop(columns=['attack_cat', 'label'], errors='ignore')
+    input_example_df = input_example_df.drop(
+        columns=["attack_cat", "label"], errors="ignore"
+    )
     # Ensure categorical columns are strings (avoid Pandas 'category' dtype issues)
     for col in input_example_df.select_dtypes(include=["category"]).columns:
         input_example_df[col] = input_example_df[col].astype(str)
@@ -160,8 +159,9 @@ def evaluate_and_log_results(trainer, history, test_data, preparer, test_df,obse
         name="synaptic_ids_pipeline",
         registered_model_name="SynapticIDSPipeline",
         input_example=input_example_df,
-        pip_requirements_path=requirements_path
+        pip_requirements_path=requirements_path,
     )
+
 
 def main():
     """The main orchestrator function for the model training and evaluation pipeline."""
@@ -182,7 +182,9 @@ def main():
         trainer, history = build_and_train_model(train_data, val_data, preparer)
 
         if trainer and history:
-            evaluate_and_log_results(trainer, history, test_data, preparer, test_df, observer)
+            evaluate_and_log_results(
+                trainer, history, test_data, preparer, test_df, observer
+            )
 
         print("\n--- SYNAPTIC-IDS: TRAINING PIPELINE COMPLETE ---")
 

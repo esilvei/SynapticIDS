@@ -1,15 +1,15 @@
-from sqlalchemy import (
-    Column, Integer, String, Float, ForeignKey, DateTime
-)
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+
 
 class Prediction(Base):
     """
     ORM model for the 'predictions' table.
     This table stores the output of each prediction made by the model.
     """
+
     __tablename__ = "predictions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -25,7 +25,7 @@ class Prediction(Base):
         "TrafficRecord",
         back_populates="prediction",
         uselist=False,  # Specifies a one-to-one relationship
-        cascade="all, delete-orphan"  # Ensures the related record is deleted
+        cascade="all, delete-orphan",  # Ensures the related record is deleted
     )
 
 
@@ -34,6 +34,7 @@ class TrafficRecord(Base):
     ORM model for the 'traffic_records' table.
     This table stores the input features that led to a specific prediction.
     """
+
     __tablename__ = "traffic_records"
 
     id = Column(Integer, primary_key=True, index=True)
