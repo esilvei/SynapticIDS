@@ -1,6 +1,10 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field, ConfigDict
 
+# ====================================================================
+#                 SCHEMAS FOR ML MODEL PREDICTION
+# ====================================================================
+
 
 class TrafficRecord(BaseModel):
     """
@@ -161,3 +165,41 @@ class PredictionResponse(BaseModel):
     predictions: List[PredictionResult] = Field(
         ..., description="List of prediction results"
     )
+
+
+# ====================================================================
+#              SCHEMAS FOR DATABASE CRUD OPERATIONS
+# ====================================================================
+
+
+class PredictionBase(BaseModel):
+    """
+    Base schema containing common attributes for a prediction record.
+    """
+
+    prediction_data: str = Field(
+        ..., description="The input data for the prediction, as a JSON string."
+    )
+    prediction_result: str = Field(
+        ..., description="The result of the prediction (e.g., 'Attack', 'Normal')."
+    )
+
+
+class PredictionCreate(PredictionBase):
+    """
+    Schema used when creating a new prediction record in the database.
+    It inherits all fields from PredictionBase.
+    """
+
+
+class Prediction(PredictionBase):
+    """
+    Schema used when reading a prediction record from the database.
+    It includes the database-generated ID.
+    """
+
+    id: int
+
+    # This configuration allows the Pydantic model to read data from
+    # SQLAlchemy model attributes.
+    model_config = ConfigDict(from_attributes=True)
