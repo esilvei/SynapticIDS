@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 import pandas as pd
+import numpy as np
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -62,7 +63,7 @@ class PredictionService:
                 for i, prob in enumerate(prediction_output)
             }
 
-            prediction_value = int(prediction_output.argmax())
+            prediction_value = int(np.argmax(prediction_output))
             confidence = float(prediction_output[prediction_value])
             label = self.index_to_label.get(prediction_value, "Unknown")
         return schemas.PredictionResult(

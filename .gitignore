@@ -10,3 +10,4 @@ mlruns/
 .DS_Store
 Thumbs.db
 .trash
+*.db
