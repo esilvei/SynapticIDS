@@ -24,7 +24,7 @@ def create_prediction_with_record(
         The created SQLAlchemy Prediction object now contains a database ID
         and other generated values.
     """
-    db_traffic_record = models.TrafficRecord(**record_in.dict())
+    db_traffic_record = models.TrafficRecord(**record_in.model_dump())
 
     db_prediction = models.Prediction(
         label=result_in.label,

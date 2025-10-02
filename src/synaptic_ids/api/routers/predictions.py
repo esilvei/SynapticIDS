@@ -33,7 +33,7 @@ def predict(
     return schemas.PredictionResponse(predictions=results)
 
 
-@router.get("/", response_model=List[schemas.PredictionResult])
+@router.get("/", response_model=List[schemas.PredictionRecord])
 def read_predictions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Retrieves a paginated list of all stored predictions.
@@ -41,7 +41,7 @@ def read_predictions(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return crud.get_predictions(db, skip=skip, limit=limit)
 
 
-@router.get("/{prediction_id}", response_model=schemas.PredictionResult)
+@router.get("/{prediction_id}", response_model=schemas.PredictionRecord)
 def read_prediction(prediction_id: int, db: Session = Depends(get_db)):
     """
     Retrieves a single prediction by its unique ID.

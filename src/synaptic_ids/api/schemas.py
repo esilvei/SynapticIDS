@@ -95,36 +95,48 @@ class TrafficRecord(BaseModel):
             "example": {
                 "proto": "tcp",
                 "state": "FIN",
-                "dur": 0.000001,
-                "sbytes": 100,
-                "dbytes": 200,
-                "sttl": 254,
+                "dur": 0.088159,
+                "sbytes": 568,
+                "dbytes": 3130,
+                "sttl": 62,
                 "dttl": 252,
-                "sloss": 0,
-                "dloss": 0,
-                "service": "http",
-                "sload": 80000000.0,
-                "dload": 160000000.0,
-                "spkts": 1,
-                "dpkts": 1,
-                "smean": 100,
-                "dmean": 200,
-                "sjit": 0.0,
-                "djit": 0.0,
+                "sloss": 7,
+                "dloss": 5,
+                "service": "-",
+                "sload": 45554.402344,
+                "dload": 243763.421875,
+                "spkts": 18,
+                "dpkts": 14,
+                "smean": 32,
+                "dmean": 224,
+                "sjit": 23.477833,
+                "djit": 1.400333,
                 "stime": 1421927414,
                 "ltime": 1421927414,
-                "sinpkt": 0.0,
-                "dinpkt:": 0.0,
+                "sinpkt": 5.185823,
+                "dinpkt": 6.209231,
                 "is_sm_ips_ports": 0,
-                "ct_srv_src": 1,
-                "ct_srv_dst": 1,
+                "ct_srv_src": 3,
+                "ct_srv_dst": 2,
                 "ct_dst_ltm": 1,
                 "ct_src_ltm": 1,
                 "ct_src_dport_ltm": 1,
                 "ct_dst_sport_ltm": 1,
                 "ct_dst_src_ltm": 1,
-                "rate": 1000000.0,
+                "rate": 351.638062,
                 "response_body_len": 0,
+                "tcprtt": 0.057393,
+                "synack": 0.013233,
+                "ackdat": 0.04416,
+                "ct_state_ttl": 0,
+                "ct_flw_http_mthd": 0,
+                "is_ftp_login": 0,
+                "ct_ftp_cmd": 0,
+                "trans_depth": 0,
+                "swin": 255,
+                "dwin": 255,
+                "stcpb": 133588210,
+                "dtcpb": 357039015,
             }
         }
     )
@@ -172,34 +184,13 @@ class PredictionResponse(BaseModel):
 # ====================================================================
 
 
-class PredictionBase(BaseModel):
+class PredictionRecord(PredictionResult):
     """
-    Base schema containing common attributes for a prediction record.
-    """
-
-    prediction_data: str = Field(
-        ..., description="The input data for the prediction, as a JSON string."
-    )
-    prediction_result: str = Field(
-        ..., description="The result of the prediction (e.g., 'Attack', 'Normal')."
-    )
-
-
-class PredictionCreate(PredictionBase):
-    """
-    Schema used when creating a new prediction record in the database.
-    It inherits all fields from PredictionBase.
-    """
-
-
-class Prediction(PredictionBase):
-    """
-    Schema used when reading a prediction record from the database.
-    It includes the database-generated ID.
+    Represents a full prediction record as read from the database,
+    including its unique ID.
+    Inherits 'label', 'prediction', 'confidence', and 'probabilities'
+    from PredictionResult.
     """
 
     id: int
-
-    # This configuration allows the Pydantic model to read data from
-    # SQLAlchemy model attributes.
     model_config = ConfigDict(from_attributes=True)
