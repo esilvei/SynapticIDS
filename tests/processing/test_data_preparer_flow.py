@@ -21,6 +21,7 @@ def small_real_dataframe():
         "spkts": np.random.randint(1, 100, 25),
         "sbytes": np.random.randint(100, 1000, 25),
         "rate": np.random.rand(25) * 100,
+        "dpkts": np.random.randint(1, 100, 25),
         # Categorical features
         "proto": ["tcp", "udp"] * 12 + ["tcp"],
         "service": ["dns", "-", "http", "smtp", "ftp"] * 5,
@@ -32,15 +33,11 @@ def small_real_dataframe():
     return pd.DataFrame(data)
 
 
-def test_data_preparer_integration_flow(small_real_dataframe):  # pylint: disable=redefined-outer-name
+@pytest.mark.asyncio
+async def test_data_preparer_integration_flow(small_real_dataframe):  # pylint: disable=redefined-outer-name
     """
     Tests the end-to-end flow of the DataPreparer with real components.
-    1. Instantiates the real FeatureEngineer.
-    2. Instantiates the DataPreparer with the real engineer.
-    3. Executes fit() and prepare_data().
-    4. Verifies the output for correct shape, type, and consistency.
     """
-    # We'll use a subset of features to make the test faster.
     selected_features = ["dur", "spkts", "sbytes", "rate", "proto", "service", "state"]
     feature_engineer = UNSWNB15FeatureEngineer(
         mode="multiclass", target_col="attack_cat", selected_features=selected_features
@@ -49,14 +46,15 @@ def test_data_preparer_integration_flow(small_real_dataframe):  # pylint: disabl
     data_preparer = DataPreparer(feature_engineer=feature_engineer, mode="multiclass")
 
     data_preparer.fit(small_real_dataframe)
-    prepared_data = data_preparer.prepare_data(small_real_dataframe, is_training=True)
+    prepared_data = await data_preparer.prepare_data(
+        small_real_dataframe, is_training=True
+    )
 
     assert "images" in prepared_data
     assert "sequences" in prepared_data
     assert "labels" in prepared_data
 
-    # Expected: 25 - 5 + 1 = 21 sequences
-    expected_num_sequences = 21
+    expected_num_sequences = 25
 
     # Check the shapes
     assert prepared_data["sequences"].shape[0] == expected_num_sequences
@@ -75,7 +73,8 @@ def test_data_preparer_integration_flow(small_real_dataframe):  # pylint: disabl
     assert prepared_data["labels"].dtype in ("float32", "float64")
 
 
-def test_data_preparer_inference_flow(small_real_dataframe):
+@pytest.mark.asyncio
+async def test_data_preparer_inference_flow(small_real_dataframe):
     """
     Tests the end-to-end flow for INFERENCE.
     1. Fits the preparer with training data.
@@ -100,7 +99,7 @@ def test_data_preparer_inference_flow(small_real_dataframe):
         columns=[settings.training.target_column]
     )
 
-    prepared_data = loaded_preparer_for_inference.prepare_data(
+    prepared_data = await loaded_preparer_for_inference.prepare_data(
         inference_df, is_training=False
     )
 

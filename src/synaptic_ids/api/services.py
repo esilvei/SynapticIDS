@@ -3,8 +3,10 @@ from typing import List
 
 import pandas as pd
 import numpy as np
+import redis
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from redis import exceptions as redis_exceptions
 
 from src.synaptic_ids.api import crud, schemas
 from src.synaptic_ids.config import settings
@@ -73,24 +75,52 @@ class PredictionService:
             probabilities=probabilities,
         )
 
-    def predict_and_store(
+    async def predict_and_store(
         self,
         db: Session,
         prediction_input: schemas.PredictionInput,
+        redis_client: redis.Redis,
     ) -> List[schemas.PredictionResult]:
+        """
+        Prepares data asynchronously, predicts, and stores the results.
+        """
         if not self.model:
             logger.error("ML model is not available.")
             raise HTTPException(status_code=503, detail="ML model is not available.")
-
+        try:
+            pipeline = self.model.unwrap_python_model()
+        except AttributeError as exc:
+            logger.error("Model is not an MLflow pyfunc model or cannot be unwrapped.")
+            raise HTTPException(
+                status_code=500, detail="Invalid model type loaded."
+            ) from exc
         input_df = self._prepare_input_data(prediction_input.records)
 
         try:
-            predictions = self.model.predict(input_df)
-        except Exception as e:
-            logger.error("Error during model prediction: %s", e, exc_info=True)
+            prepared_data = await pipeline.data_preparer.prepare_data(
+                input_df,
+                is_training=False,
+                redis_client=redis_client,
+                session_id=prediction_input.session_id,
+            )
+            model_inputs_list = [prepared_data["images"], prepared_data["sequences"]]
+            predictions = pipeline.model.predict(model_inputs_list)
+        except redis_exceptions.RedisError as e:
+            logger.error("Redis service error during prediction: %s", e, exc_info=True)
             raise HTTPException(
-                status_code=400, detail=f"Error during model prediction: {e}"
+                status_code=503, detail=f"Redis service unavailable: {e}"
             ) from e
+        except Exception as e:
+            logger.error(
+                "An unexpected error occurred during model prediction: %s",
+                e,
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"An internal error occurred during prediction: {e}",
+            ) from e
+
         results = []
         for i, record in enumerate(prediction_input.records):
             prediction_result = self._process_prediction(predictions[i])

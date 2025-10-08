@@ -34,7 +34,8 @@ def small_real_dataframe():
     return pd.DataFrame(data)
 
 
-def test_data_pipeline_integration(small_real_dataframe, monkeypatch):
+@pytest.mark.asyncio
+async def test_data_pipeline_integration(small_real_dataframe, monkeypatch):
     """Integration test verifying DataLoader -> FeatureEngineer -> DataPreparer."""
     # Arrange
     monkeypatch.setattr(DataSetup, "setup_dataset", lambda self: "fake_path")
@@ -51,7 +52,7 @@ def test_data_pipeline_integration(small_real_dataframe, monkeypatch):
     # --- Act ---
     loader = DataLoader(dataset_dir="", target_col="label", test_size=0.2, val_size=0.1)
     train_df, val_df, test_df = loader.load_and_split()
-    train_data, _, _, _ = prepare_data(train_df, val_df, test_df)
+    train_data, _, _, _ = await prepare_data(train_df, val_df, test_df)
 
     # --- Assert ---
     assert isinstance(train_data, dict)
@@ -61,7 +62,8 @@ def test_data_pipeline_integration(small_real_dataframe, monkeypatch):
 
 
 @pytest.mark.slow
-def test_full_pipeline_smoke_test(small_real_dataframe, monkeypatch):
+@pytest.mark.asyncio
+async def test_full_pipeline_smoke_test(small_real_dataframe, monkeypatch):
     """A full smoke test that runs the pipeline end-to-end for 1 epoch."""
     # --- Arrange ---
     monkeypatch.setattr(DataSetup, "setup_dataset", lambda self: "fake_path")
@@ -82,7 +84,7 @@ def test_full_pipeline_smoke_test(small_real_dataframe, monkeypatch):
     # 1. Prepare data
     loader = DataLoader(dataset_dir="", target_col="label", test_size=0.2, val_size=0.1)
     train_df, val_df, test_df = loader.load_and_split()
-    train_data, val_data, _, preparer = prepare_data(train_df, val_df, test_df)
+    train_data, val_data, _, preparer = await prepare_data(train_df, val_df, test_df)
 
     # 2. Build and train for 1 epoch
     monkeypatch.setattr("src.synaptic_ids.config.settings.training.epochs", 1)

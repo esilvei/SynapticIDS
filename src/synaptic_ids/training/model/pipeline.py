@@ -1,50 +1,47 @@
-import mlflow
-import pandas as pd
+import asyncio
 
-from src.synaptic_ids.processing.data_transformer.data_preparer import DataPreparer
+import mlflow
+import numpy as np
+import pandas as pd
 
 
 class SynapticIDSPipeline(mlflow.pyfunc.PythonModel):
-    """
-    A custom MLflow model that wraps the entire inference pipeline.
+    """A custom MLflow model pipeline for SynapticIDS."""
 
-    This class ensures that the exact same preprocessing steps used during
-    training are applied during inference. It takes raw data as input and
-    outputs the final prediction.
-
-    Attributes:
-        model: The trained Keras model.
-        data_preparer: The fitted DataPreparer object, containing the scaler
-                       and all transformation logic.
-    """
-
-    def __init__(self, model, data_preparer: DataPreparer):
+    def __init__(self, model, data_preparer):
+        """Initializes the pipeline with the trained model and data preparer."""
         self.model = model
         self.data_preparer = data_preparer
 
-    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
-        """
-        Executes the full preprocessing and prediction pipeline.
+    async def preprocess(self, model_input):
+        """Preprocesses the input data before prediction."""
+        return await self.data_preparer.prepare_data(model_input)
 
-        This method is called by `mlflow.pyfunc.load_model().predict()`.
+    def predict(
+        self, context: mlflow.pyfunc.PythonModelContext, model_input: pd.DataFrame
+    ) -> np.ndarray:
+        """Generates predictions for the given model input."""
+        # Preprocess the data
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:  # 'get_running_loop' fails in a new thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
-        Args:
-            context: The MLflow context (provided automatically).
-            model_input: A Pandas DataFrame containing the raw input data,
-                         matching the Pydantic schema.
+        processed_data = loop.run_until_complete(self.preprocess(model_input))
 
-        Returns:
-            A DataFrame or NumPy array with the model's predictions.
-        """
-        # The preprocessing logic is now self-contained within the model artifact,
-        # using the `data_preparer` that was fitted on the training data.
-        prepared_data = self.data_preparer.prepare_data(
-            model_input.copy(), is_training=False
-        )
+        # Extract images and sequences
+        images = processed_data["images"]
+        sequences = processed_data["sequences"]
 
-        # The output of prepare_data is a dictionary; we need the list of inputs
-        # that the Keras model expects.
-        model_inputs_list = [prepared_data["images"], prepared_data["sequences"]]
+        # Make predictions
+        predictions = self.model.predict([images, sequences])
 
-        # Perform inference with the trained Keras model
-        return self.model.predict(model_inputs_list)
+        # Post-process predictions
+        return self.postprocess(predictions)
+
+    def postprocess(self, predictions):
+        """Post-processes the model's predictions."""
+        # You can add more post-processing logic here if needed
+        print(f"Raw predictions: {predictions}")
+        return predictions

@@ -1,9 +1,9 @@
 from typing import List
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-
+import pandas as pd
 from src.synaptic_ids.api.app_state import ml_models
 from src.synaptic_ids.api.schemas import TrafficRecord
 
@@ -26,7 +26,6 @@ def create_mock_prediction(
     """Creates a multiclass mock prediction where the winner_index has the highest probability."""
     prediction = [0.0] * num_classes
     prediction[winner_index] = 0.9
-    # Distribute the remaining probability
     remaining_prob = 0.1 / (num_classes - 1)
     for i in range(num_classes):
         if i != winner_index:
@@ -59,9 +58,18 @@ def test_predict_success(
     """Tests successful prediction and storage
     for binary and multiclass modes with various labels."""
     monkeypatch.setattr("src.synaptic_ids.config.settings.api.model_mode", model_mode)
-
-    payload = {"records": [TRAFFIC_RECORD_EXAMPLE]}
-    mock_ml_model.predict.return_value = mock_prediction
+    mock_data_preparer = MagicMock()
+    mock_data_preparer.prepare_data = AsyncMock(
+        return_value={
+            "images": pd.DataFrame([TRAFFIC_RECORD_EXAMPLE]),
+            "sequences": pd.DataFrame([TRAFFIC_RECORD_EXAMPLE]),
+        }
+    )
+    mock_pipeline = MagicMock()
+    mock_pipeline.data_preparer = mock_data_preparer
+    mock_pipeline.model.predict.return_value = mock_prediction
+    mock_ml_model.unwrap_python_model.return_value = mock_pipeline
+    payload = {"session_id": "test_session", "records": [TRAFFIC_RECORD_EXAMPLE]}
 
     response = client.post("/predictions/", json=payload)
     assert response.status_code == 200, response.json()
@@ -81,7 +89,10 @@ def test_predict_no_model(client: TestClient):
     """Tests the prediction endpoint when the ML model is unavailable."""
     if "ids_model" in ml_models:
         del ml_models["ids_model"]
-    response = client.post("/predictions/", json={"records": [TRAFFIC_RECORD_EXAMPLE]})
+    response = client.post(
+        "/predictions/",
+        json={"session_id": "test_no_model", "records": [TRAFFIC_RECORD_EXAMPLE]},
+    )
     assert response.status_code == 503
 
 
@@ -89,7 +100,10 @@ def test_predict_invalid_payload(client: TestClient, mock_ml_model: MagicMock):
     """Tests prediction with a payload missing a required field."""
     invalid_payload = TRAFFIC_RECORD_EXAMPLE.copy()
     del invalid_payload["proto"]
-    response = client.post("/predictions/", json={"records": [invalid_payload]})
+    response = client.post(
+        "/predictions/",
+        json={"session_id": "test_session", "records": [invalid_payload]},
+    )
     assert response.status_code == 422
 
 

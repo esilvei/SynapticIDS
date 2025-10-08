@@ -45,52 +45,45 @@ def test_fit_method_trains_dependencies(mock_feature_engineer, sample_dataframe)
     preparer.fit(sample_dataframe)
 
     # Assert
-    # Verify that the feature engineer was fitted
     mock_feature_engineer.fit.assert_called_once_with(sample_dataframe)
-
-    # Verify that the image transformer was created with the correct features
     assert preparer.image_transformer is not None
     assert preparer.image_transformer.feature_names == ["feat1", "feat2", "feat3"]
 
-    # Verify that the preparer is marked as fitted
     assert preparer.is_fitted is True
 
 
 ## 2. Testing the `prepare_data` method
 @patch("src.synaptic_ids.processing.data_transformer.data_preparer.SequenceGenerator")
-def test_prepare_data_happy_path(
+async def test_prepare_data_happy_path(
     mock_sequence_generator, mock_feature_engineer, sample_dataframe
 ):
     """
     Tests the main data preparation pipeline in 'binary' mode.
     """
     # Arrange
-    # Configure the mock SequenceGenerator's return value
     mock_seq_gen_instance = mock_sequence_generator.return_value
     mock_sequences = np.random.rand(16, 5, 3)  # (num_seq, len_seq, num_feat)
     mock_labels = np.random.randint(0, 2, 16)
     mock_indices = np.arange(4, 20)
-    mock_seq_gen_instance.generate.return_value = (
+    mock_seq_gen_instance.generate_offline.return_value = (
         mock_sequences,
         mock_labels,
-        mock_indices,
+        mock_indices.tolist(),
     )
 
     preparer = DataPreparer(feature_engineer=mock_feature_engineer, mode="binary")
-    preparer.fit(sample_dataframe)  # Fit the preparer first
+    preparer.fit(sample_dataframe)
 
-    # Mock the image transformer to avoid TensorFlow overhead
     preparer.image_transformer = MagicMock(
         return_value=tf.random.uniform((16, 32, 32, 1))
     )
 
     # Act
-    result = preparer.prepare_data(sample_dataframe, is_training=True)
+    result = await preparer.prepare_data(sample_dataframe, is_training=True)
 
     # Assert
-    # Verify dependency calls
     assert mock_feature_engineer.transform.call_args[1]["is_inference"] is False
-    mock_seq_gen_instance.generate.assert_called_once()
+    mock_seq_gen_instance.generate_offline.assert_called_once()
     preparer.image_transformer.assert_called_once()
 
     # Verify output dictionary
@@ -105,7 +98,7 @@ def test_prepare_data_happy_path(
 
 
 @patch("src.synaptic_ids.processing.data_transformer.data_preparer.SequenceGenerator")
-def test_prepare_data_inference_mode(
+async def test_prepare_data_inference_mode(
     mock_sequence_generator, mock_feature_engineer, sample_dataframe
 ):
     """
@@ -120,7 +113,6 @@ def test_prepare_data_inference_mode(
     )
 
     # 2. Configure mocks for the inference flow
-    # The feature engineer will now return y_eng=None
     x_eng_inference = pd.DataFrame(
         np.random.rand(19, 3), columns=["feat1", "feat2", "feat3"]
     )
@@ -130,14 +122,17 @@ def test_prepare_data_inference_mode(
     mock_seq_gen_instance = mock_sequence_generator.return_value
     mock_sequences = np.random.rand(15, 5, 3)
     mock_indices = np.arange(4, 19).tolist()
-    mock_seq_gen_instance.generate.return_value = (mock_sequences, None, mock_indices)
+    mock_seq_gen_instance.generate_offline.return_value = (
+        mock_sequences,
+        None,
+        mock_indices,
+    )
 
     # 3. Create an inference DataFrame
     inference_df = sample_dataframe.copy()
 
     # --- Act ---
-    # Call prepare_data in non-training (inference) mode
-    result = preparer.prepare_data(inference_df, is_training=False)
+    result = await preparer.prepare_data(inference_df, is_training=False)
 
     # --- Assert ---
     # Verify that the transform method was called with the correct arguments
@@ -158,7 +153,9 @@ def test_prepare_data_inference_mode(
     assert result["sequences"].shape == (15, 5, 3)
 
 
-def test_prepare_data_multiclass_encoding(mock_feature_engineer, sample_dataframe):
+async def test_prepare_data_multiclass_encoding(
+    mock_feature_engineer, sample_dataframe
+):
     """
     Tests that labels are correctly one-hot encoded in 'multiclass' mode.
     """
@@ -168,7 +165,7 @@ def test_prepare_data_multiclass_encoding(mock_feature_engineer, sample_datafram
     preparer.image_transformer = MagicMock(return_value=tf.zeros((1, 32, 32, 1)))
 
     # Act
-    result = preparer.prepare_data(sample_dataframe, is_training=True)
+    result = await preparer.prepare_data(sample_dataframe, is_training=True)
 
     # Assert
     # The label encoder in the mock has 3 classes, so shape should be (num_labels, 3)
@@ -177,7 +174,7 @@ def test_prepare_data_multiclass_encoding(mock_feature_engineer, sample_datafram
 
 
 ## 3. Testing Edge Cases and Error Handling
-def test_prepare_data_raises_error_if_not_fitted(mock_feature_engineer):
+async def test_prepare_data_raises_error_if_not_fitted(mock_feature_engineer):
     """
     Tests that calling prepare_data before fit raises a RuntimeError.
     """
@@ -186,26 +183,25 @@ def test_prepare_data_raises_error_if_not_fitted(mock_feature_engineer):
 
     # Act & Assert
     with pytest.raises(RuntimeError, match="DataPreparer must be fitted"):
-        preparer.prepare_data(pd.DataFrame())
+        await preparer.prepare_data(pd.DataFrame())
 
 
 @patch("src.synaptic_ids.processing.data_transformer.data_preparer.SequenceGenerator")
-def test_prepare_data_handles_no_sequences(
+async def test_prepare_data_handles_no_sequences(
     mock_sequence_generator, mock_feature_engineer, sample_dataframe
 ):
     """
     Tests that the method returns empty arrays if the sequence generator produces no sequences.
     """
     # Arrange
-    # Configure the mock to return empty arrays
     mock_seq_gen_instance = mock_sequence_generator.return_value
-    mock_seq_gen_instance.generate.return_value = (np.array([]), None, [])
+    mock_seq_gen_instance.generate_offline.return_value = (np.array([]), None, [])
 
     preparer = DataPreparer(feature_engineer=mock_feature_engineer)
     preparer.fit(sample_dataframe)
 
     # Act
-    result = preparer.prepare_data(sample_dataframe)
+    result = await preparer.prepare_data(sample_dataframe)
 
     # Assert
     assert result["images"].size == 0

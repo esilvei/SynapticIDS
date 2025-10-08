@@ -1,8 +1,10 @@
+import json
+from unittest.mock import MagicMock, AsyncMock
+
 import pytest
 import pandas as pd
 import numpy as np
 
-# Import the class to be tested
 from src.synaptic_ids.processing.data_transformer.to_sequence import SequenceGenerator
 
 
@@ -41,129 +43,102 @@ def test_generate_offline_correct_shape_and_count(
     """
     Tests that offline generation produces the correct number and shape of sequences.
     """
-    # Arrange
     generator = sequence_generator_instance
     x_data, y_data = sample_batch_data
+    sequences, labels, valid_indices = generator.generate_offline(x_data, y_data)
 
-    # Act
-    sequences, labels, valid_indices = generator.generate(x_data, y_data)
-
-    # Assert
-    # For 10 data points and sequence_length=5, we expect 10 - 5 + 1 = 6 sequences.
     assert sequences.shape == (
-        6,
+        10,
         5,
         4,
     )  # (num_sequences, seq_length, num_temporal_features)
-    assert labels.shape == (6,)
-    assert len(valid_indices) == 6
-    np.testing.assert_array_equal(labels, [104, 105, 106, 107, 108, 109])
-    np.testing.assert_array_equal(valid_indices, [4, 5, 6, 7, 8, 9])
+    assert labels.shape == (10,)
+    assert len(valid_indices) == 10
+    np.testing.assert_array_equal(labels, y_data.values)
+    np.testing.assert_array_equal(valid_indices, np.arange(10))
 
 
-def test_generate_offline_correct_labeling(
+def test_generate_offline_correct_padding(
     sequence_generator_instance, sample_batch_data
 ):
     """
-    Tests that the label for each sequence corresponds to its last element.
+    Tests that padding is applied correctly to the initial sequences.
     """
-    # Arrange
     generator = sequence_generator_instance
     x_data, y_data = sample_batch_data
 
-    # Act
-    _, labels, _ = generator.generate(x_data, y_data)
+    sequences, _, _ = generator.generate_offline(x_data, y_data)
 
-    # Assert
-    # The first sequence is from index 0-4, so its label should be y[4] = 104.
-    # The second sequence is from index 1-5, so its label should be y[5] = 105.
-    # ...and so on.
-    expected_labels = np.array([104, 105, 106, 107, 108, 109])
-    np.testing.assert_array_equal(labels, expected_labels)
+    expected_first_sequence = np.zeros((5, 4))
+    expected_first_sequence[4, :] = (
+        x_data[["dur", "sbytes", "dbytes", "rate"]].iloc[0].values
+    )
+    np.testing.assert_array_equal(sequences[0], expected_first_sequence)
+
+    expected_last_sequence = (
+        x_data[["dur", "sbytes", "dbytes", "rate"]].iloc[5:10].values
+    )
+    np.testing.assert_array_equal(sequences[9], expected_last_sequence)
 
 
 def test_generate_offline_with_insufficient_data(sequence_generator_instance):
     """
     Tests that generation returns empty arrays if data is shorter than sequence length.
     """
-    # Arrange
-    generator = sequence_generator_instance  # sequence_length is 5
-    # Create a DataFrame with only 4 rows
+    generator = sequence_generator_instance
     x_short = pd.DataFrame(np.zeros((4, 3)), columns=["dur", "sbytes", "dbytes"])
     y_short = pd.Series([0, 1, 0, 1])
+    sequences, labels, valid_indices = generator.generate_offline(x_short, y_short)
 
-    # Act
-    sequences, labels, valid_indices = generator.generate(x_short, y_short)
-
-    # Assert
-    assert sequences.size == 0
-    assert labels.size == 0
-    assert valid_indices.size == 0
+    assert sequences.shape == (4, 5, 3)
+    assert labels.shape == (4,)
+    assert len(valid_indices) == 4
 
 
-def test_generate_online_mode_with_batch_no_labels(
-    sequence_generator_instance, sample_batch_data
+@pytest.mark.asyncio
+async def test_generate_online_sequence_correct_shape_and_padding(
+    sequence_generator_instance,
 ):
     """
-    Tests that online generation mode (triggered by y=None) works for a batch.
+    Tests the online generation for a single instance, checking shape and padding.
     """
     # Arrange
     generator = sequence_generator_instance
-    x_data, _ = sample_batch_data
+    x_single = pd.DataFrame(
+        [[1.0, 2.0, 3.0, 4.0]], columns=["dur", "sbytes", "dbytes", "rate"]
+    )
+    session_id = "test_session_1"
 
-    # Act: Call the function with y=None to trigger online mode
-    sequences, labels, valid_indices = generator.generate(x_data, y=None)
+    mock_redis_client = MagicMock()
+    mock_pipeline = AsyncMock()
 
-    # Assert
-    # In online mode, each of the 10 samples is replicated into a sequence.
-    assert sequences.shape == (10, 5, 4)
-    # The labels output should be None
-    assert labels is None
-    # Valid indices should correspond to all 10 samples
-    assert len(valid_indices) == 10
-    np.testing.assert_array_equal(valid_indices, np.arange(10))
+    mock_pipeline.lpush = MagicMock()
+    mock_pipeline.ltrim = MagicMock()
+    mock_pipeline.lrange = MagicMock()
 
+    new_record = x_single.iloc[0].to_dict()
+    redis_return_value = [json.dumps(new_record).encode("utf-8")]
+    mock_pipeline.execute.return_value = [None, None, redis_return_value]
+    mock_redis_client.pipeline.return_value.__aenter__.return_value = mock_pipeline
 
-def test_generate_online_correct_shape_and_replication(sequence_generator_instance):
-    """
-    Tests that online mode replicates a single data point to form a sequence.
-    """
-    # Arrange
-    generator = sequence_generator_instance
-    x_single = pd.DataFrame([[1, 2, 3, 4]], columns=["dur", "sbytes", "dbytes", "rate"])
+    sequences = await generator.generate_online_sequence(
+        x_single, mock_redis_client, session_id
+    )
 
-    # Act
-    # Call generate with y=None to trigger online mode for a single instance
-    sequences, labels, valid_indices = generator.generate(x_single, y=None)
-
-    # Assert
-    # The output should have a batch size of 1
-    assert sequences.shape == (1, 5, 4)  # (batch_size, seq_length, num_features)
-    assert labels is None  # In online mode (y=None), labels should be None
-    assert valid_indices.shape == (1,)
-
-    # Check that the sequence is the input row repeated 5 times
-    expected_sequence_contents = np.tile([1, 2, 3, 4], (5, 1))
-    np.testing.assert_array_equal(sequences[0], expected_sequence_contents)
-    # The current implementation returns np.arange(n_samples), so the index will be 0.
-    assert valid_indices[0] == 0
-
-
-## Test for Feature Filtering
+    assert sequences.shape == (1, 5, 4)
+    expected_sequence = np.zeros((5, 4))
+    expected_sequence[4, :] = [1.0, 2.0, 3.0, 4.0]
+    np.testing.assert_array_equal(sequences[0], expected_sequence)
 
 
 def test_generate_handles_missing_temporal_features(sequence_generator_instance):
     """
     Tests that the generator only uses available temporal features and doesn't fail.
     """
-    # Arrange
     generator = sequence_generator_instance
     x_data = pd.DataFrame(np.arange(20).reshape(10, 2), columns=["dur", "sload"])
     y_data = pd.Series(np.zeros(10))
 
-    # Act
-    sequences, _, _ = generator.generate(x_data, y_data)
+    sequences, _, _ = generator.generate_offline(x_data, y_data)
 
-    # Assert
-    # The number of features in the output sequence should be 2.
-    assert sequences.shape == (6, 5, 2)
+    assert sequences.shape == (10, 5, 2)

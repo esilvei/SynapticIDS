@@ -25,6 +25,7 @@ The outputs from both branches are merged using a **Transformer Fusion** mechani
 * **📦 End-to-End ML Pipeline**: Complete scripts for data setup, feature engineering, model training, and evaluation.
 * **🚀 High-Performance API**: A RESTful API built with **FastAPI** to serve the trained model for real-time, batch predictions.
 * **📊 Experiment Management**: Full integration with **MLflow** to track experiments, manage model versions, and deploy models seamlessly from the registry.
+* **🧠 Real-time Sequential Analysis with Redis**: The system uses Redis for stateful session tracking. This allows the model to analyze true, time-ordered sequences of traffic for a given session, enabling more context-aware and accurate predictions.
 * **🗄️ Database Integration**: All predictions are automatically logged to a **SQLite** database using SQLAlchemy for auditing and retrieval.
 * **✅ Robust Testing Suite**: Includes unit and integration tests (`pytest`) for the API layer, ensuring code reliability and correctness.
 * **⚡ High-Speed Dependency Management**: Uses **UV** for fast and efficient virtual environment and package management.
@@ -38,6 +39,8 @@ The outputs from both branches are merged using a **Transformer Fusion** mechani
 
 * Python 3.10+
 * **UV** ⚡ (for package and environment management)
+* **Redis** (for real-time session tracking)
+* **Kaggle API Credentials**: To download the dataset, you need to have your Kaggle API credentials configured. You can find instructions on how to do this [here](https://www.kaggle.com/docs/api).
 
 ### 🛠️ Installation & Setup
 
@@ -58,7 +61,7 @@ The outputs from both branches are merged using a **Transformer Fusion** mechani
     # On macOS/Linux
     source .venv/bin/activate
 
-    # Install/sync dependencies from requirements.txt
+    # Install/sync dependencies
     uv sync
     ```
 
@@ -91,7 +94,7 @@ The server will start on `http://127.0.0.1:8000`. You can access the interactive
 
 ## 🔌 API Usage
 
-The API is designed to receive a list of traffic records and return a prediction for each.
+The API is designed to receive a list of traffic records and return a prediction for each. For sequential analysis, a `session_id` should be provided.
 
 ### API Endpoints
 
@@ -104,12 +107,13 @@ The API is designed to receive a list of traffic records and return a prediction
 
 ### Example: Making a Prediction with `curl`
 
-You can send a `POST` request to the `/predictions/` endpoint with a list of records.
+You can send a `POST` request to the `/predictions/` endpoint with a list of records and a `session_id`.
 
 **Example of an "Attack" record:**
 
 ```bash
 curl -X POST "[http://127.0.0.1:8000/predictions/](http://127.0.0.1:8000/predictions/)" -H "Content-Type: application/json" -d '{
+  "session_id": "user123_session",
   "records": [
     {
       "proto": "tcp", "state": "FIN", "dur": 0.088159, "sbytes": 568, "dbytes": 3130,
@@ -160,45 +164,31 @@ Access the dashboard at `http://127.0.0.1:5000`.
 
 -----
 
-## 🗺️ Roadmap & Next Steps
+## 🗺️ Roadmap
 
-This section outlines the plan for evolving SynapticIDS into a fully-fledged, production-ready system.
+This section outlines the future plan for evolving SynapticIDS into a fully-fledged, production-ready system.
 
-### Phase 1: Enhance Testing and Caching
+### Phase 1: Containerization & Local Orchestration
 
-  - **Goal**: Increase system reliability and performance.
-  - **Tasks**:
-    1.  **Unit & Integration Tests for API (✅ Completed)**: A comprehensive test suite covering services, CRUD operations, and API endpoints has been implemented to ensure code quality and robustness.
-    2.  **Integrate Redis for Caching**: Use **Redis** as a high-speed, in-memory cache for recent predictions. This will reduce database load for repeated queries and speed up response times.
-
-### Phase 2: Real-time Sequential Analysis
-
-  - **Goal**: Leverage the full power of the sequential model by analyzing true, time-ordered sequences of traffic.
-  - **Tasks**:
-    1.  **Stateful Session Tracking with Redis**: For each unique source IP or session, store the last `N` traffic records in a Redis List or Stream.
-    2.  **Adapt API for True Sequences**: Evolve the API so that when a new record arrives, it retrieves the recent records from Redis for that session, forms a true sequence, and sends it to the model. This will enable more context-aware and accurate predictions.
-
-### Phase 3: Containerization & Local Orchestration
-
-  - **Goal**: Ensure consistent and portable deployments by packaging the application.
-  - **Tasks**:
+  * **Goal**: Ensure consistent and portable deployments by packaging the application.
+  * **Tasks**:
     1.  **Finalize `Dockerfile`**: Create a multi-stage `Dockerfile` to build a lean, optimized production image for the FastAPI application.
     2.  **Enhance `docker-compose.yaml`**: Update the `docker-compose.yaml` to orchestrate a multi-service environment including the API, Redis, and a **PostgreSQL** database as a more robust production alternative to SQLite.
 
-### Phase 4: Cloud Deployment with IaC and Kubernetes
+### Phase 2: Cloud Deployment with IaC and Kubernetes
 
-  - **Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
-  - **Tasks**:
+  * **Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
+  * **Tasks**:
     1.  **Infrastructure as Code (IaC) with Terraform**: Write **Terraform** scripts to automatically provision a managed Kubernetes cluster (e.g., GKE on GCP), a managed Redis instance, and a managed PostgreSQL database.
     2.  **Orchestration with Kubernetes (K8s)**:
           * Write Kubernetes manifest files (`Deployment`, `Service`, `Ingress`) to deploy the containerized services.
           * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
     3.  **CI/CD Pipeline**: Set up a CI/CD pipeline (e.g., using GitHub Actions) to automate testing, building Docker images, and deploying updates to the Kubernetes cluster.
 
-### Phase 5: Advanced MLOps and Data Management
+### Phase 3: Advanced MLOps and Data Management
 
-  - **Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
-  - **Tasks**:
+  * **Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
+  * **Tasks**:
     1.  **Data and Model Versioning with DVC**: Integrate **DVC (Data Version Control)** to work alongside Git. This will allow for versioning of large datasets and model files, ensuring full reproducibility of experiments.
     2.  **Automated Retraining Pipeline**: Design and implement a system for automated model retraining. This pipeline would:
           * Monitor for new, labeled data (e.g., from a production feedback loop).

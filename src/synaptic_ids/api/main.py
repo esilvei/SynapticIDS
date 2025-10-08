@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 import mlflow
 from fastapi import FastAPI
 from mlflow import MlflowException
+import redis.asyncio as redis
+from redis.exceptions import RedisError
 
 from src.synaptic_ids.config import settings
 from src.synaptic_ids.training.model.transformer_fusion import TransformerFusion  # noqa: F401
@@ -32,10 +34,22 @@ async def lifespan(app: FastAPI):
     except MlflowException as e:
         logger.error("Failed to load ML model on startup: %s", e, exc_info=True)
         ml_models["ids_model"] = None
+    logger.info("Connecting to Redis...")
+    try:
+        app.state.redis = await redis.from_url(
+            "redis://localhost", encoding="utf-8", decode_responses=True
+        )
+        logger.info("Connected to Redis successfully.")
+    except RedisError as e:
+        logger.error("Failed to connect to Redis: %s", e, exc_info=True)
+        app.state.redis = None
 
     yield
     ml_models.clear()
     logger.info("ML model cleared.")
+    if hasattr(app.state, "redis") and app.state.redis:
+        await app.state.redis.aclose()
+        logger.info("Redis connection closed.")
 
 
 # Ensure database tables are created based on SQLAlchemy models
