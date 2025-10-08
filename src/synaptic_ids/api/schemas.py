@@ -147,6 +147,9 @@ class PredictionInput(BaseModel):
     Schema for the prediction input, containing a list of traffic records.
     """
 
+    session_id: str = Field(
+        ..., description="A unique identifier for the user session."
+    )
     records: List[TrafficRecord] = Field(
         ..., description="List of traffic records to classify"
     )

@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
+import redis
 import tensorflow as tf
 
 from .to_2d import UNSWNB15ToImage
@@ -26,7 +27,7 @@ class DataPreparer:
             mode (str): The operational mode, 'multiclass' or 'binary'.
         """
         self.feature_engineer = feature_engineer
-        self.sequence_generator = SequenceGenerator()  # Handles sequence creation
+        self.sequence_generator = SequenceGenerator()
         self.mode = mode
 
         self.image_transformer: Optional[UNSWNB15ToImage] = None
@@ -38,7 +39,6 @@ class DataPreparer:
         and the subsequent image transformer.
         """
         print("Fitting Data Preparer...")
-        # First, fit the feature engineer to learn encodings, scaling, and to select features.
         self.feature_engineer.fit(df)
 
         # Get the list of features that were finalized during the fitting process.
@@ -51,7 +51,13 @@ class DataPreparer:
         print("Data Preparer fitted successfully.")
         return self
 
-    def prepare_data(self, df: pd.DataFrame, is_training: bool = False) -> Dict:
+    async def prepare_data(
+        self,
+        df: pd.DataFrame,
+        is_training: bool = False,
+        redis_client: Optional[redis.Redis] = None,
+        session_id: Optional[str] = None,
+    ) -> Dict:
         """
         Prepares the final data dictionary for model training or prediction.
 
@@ -70,9 +76,16 @@ class DataPreparer:
         x_eng, y_eng = self.feature_engineer.transform(df, is_inference=is_inference)
 
         # Step 2: Generate Sequences from the engineered features
-        x_sequences, y_sequences, valid_indices = self.sequence_generator.generate(
-            x_eng, y_eng
-        )
+        if redis_client and session_id:
+            x_sequences = await self.sequence_generator.generate_online_sequence(
+                x_eng, redis_client, session_id
+            )
+            y_sequences = None
+            valid_indices = x_eng.index
+        else:
+            x_sequences, y_sequences, valid_indices = (
+                self.sequence_generator.generate_offline(x_eng, y_eng)
+            )
 
         # Handle cases where no sequences can be generated (e.g., very small input df)
         if len(x_sequences) == 0:

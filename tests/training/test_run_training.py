@@ -1,6 +1,7 @@
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, patch, AsyncMock
 
 import numpy as np
+import pytest
 
 from src.synaptic_ids.training.run_training import (
     build_and_train_model,
@@ -42,18 +43,21 @@ def test_setup_and_load_data(mock_data_setup, mock_data_loader):
 
 
 # --- Test for prepare_data ---
+@pytest.mark.asyncio
 @patch("src.synaptic_ids.training.run_training.DataPreparer")
 @patch("src.synaptic_ids.training.run_training.UNSWNB15FeatureEngineer")
-def test_prepare_data(mock_feature_engineer, mock_data_preparer):
+async def test_prepare_data(mock_feature_engineer, mock_data_preparer):
     """
     Verifies that the function orchestrates the FeatureEngineer and DataPreparer.
     """
     # Arrange
     mock_preparer = mock_data_preparer.return_value
-    mock_preparer.prepare_data.side_effect = ["train_data", "val_data", "test_data"]
+    mock_preparer.prepare_data = AsyncMock(
+        side_effect=["train_data", "val_data", "test_data"]
+    )
 
     # Act
-    train, val, test, preparer = prepare_data("train_df", "val_df", "test_df")
+    train, val, test, preparer = await prepare_data("train_df", "val_df", "test_df")
 
     # Assert
     mock_feature_engineer.assert_called_once_with(

@@ -1,18 +1,16 @@
 import os
 import sys
+import asyncio
 from datetime import datetime
 import json
 import mlflow
 
-# Ensure the root directory is in the Python path to find 'config' and 'src'
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-# --- 1. CENTRALIZED CONFIGURATION IMPORT ---
 from src.synaptic_ids.config import settings
 
-# --- 2. COMPONENT IMPORTS ---
 from src.synaptic_ids.processing.data_setup import DataSetup
 from src.synaptic_ids.processing.data_loader import DataLoader
 from src.synaptic_ids.processing.feature_engineer import UNSWNB15FeatureEngineer
@@ -28,7 +26,6 @@ from src.synaptic_ids.training.analysis.analysis import (
 from src.synaptic_ids.training.observers.mlflow_observer import MLflowObserver
 from src.synaptic_ids.training.observers.setup_mlflow import setup_mlflow_local
 
-# Suppress TensorFlow informational messages for a cleaner output
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
@@ -50,7 +47,7 @@ def setup_and_load_data():
     return data_loader.load_and_split()
 
 
-def prepare_data(train_df, val_df, test_df):
+async def prepare_data(train_df, val_df, test_df):
     """Prepares and transforms data for the model."""
     print("\nSTEP 2: Preparing data for the model...")
     feature_engineer = UNSWNB15FeatureEngineer(
@@ -62,9 +59,9 @@ def prepare_data(train_df, val_df, test_df):
         feature_engineer=feature_engineer, mode=settings.training.mode
     )
     data_preparer.fit(train_df)
-    train_data = data_preparer.prepare_data(train_df, is_training=True)
-    val_data = data_preparer.prepare_data(val_df, is_training=True)
-    test_data = data_preparer.prepare_data(test_df, is_training=True)
+    train_data = await data_preparer.prepare_data(train_df, is_training=True)
+    val_data = await data_preparer.prepare_data(val_df, is_training=True)
+    test_data = await data_preparer.prepare_data(test_df, is_training=True)
     return train_data, val_data, test_data, data_preparer
 
 
@@ -176,8 +173,9 @@ def main():
         )
 
         train_df, val_df, test_df = setup_and_load_data()
-        train_data, val_data, test_data, preparer = prepare_data(
-            train_df, val_df, test_df
+        loop = asyncio.get_event_loop()
+        train_data, val_data, test_data, preparer = loop.run_until_complete(
+            prepare_data(train_df, val_df, test_df)
         )
         trainer, history = build_and_train_model(train_data, val_data, preparer)
 

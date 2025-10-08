@@ -1,1 +1,115 @@
-#ToDo
+### A comprehensive test file for the SynapticIDS API.
+#
+# This file includes tests for success scenarios, error handling, and edge cases.
+# You can run these requests directly from the PyCharm editor or using the VS Code REST Client extension.
+
+# Sets a variable for the API's base URL
+@baseUrl = http://127.0.0.1:8000
+
+#----------------------------------------------------#
+#                 SUCCESS SCENARIOS                  #
+#----------------------------------------------------#
+
+###
+# @name HealthCheck
+# [SUCCESS] Checks the health of the API to confirm it's running.
+# Expected Response: 200 OK
+GET {{baseUrl}}/
+Accept: application/json
+
+###
+# @name CreatePrediction
+# [SUCCESS] Submits a valid traffic record for classification.
+# Expected Response: 200 OK
+POST {{baseUrl}}/predictions/
+Content-Type: application/json
+
+{
+  "records": [
+    {
+      "proto": "tcp", "state": "FIN", "dur": 0.088159, "sbytes": 568, "dbytes": 3130,
+      "sttl": 62, "dttl": 252, "sloss": 7, "dloss": 5, "service": "-",
+      "sload": 45554.402344, "dload": 243763.421875, "spkts": 18, "dpkts": 14,
+      "smean": 32, "dmean": 224, "sjit": 23.477833, "djit": 1.400333,
+      "stime": 1421927414, "ltime": 1421927414, "sinpkt": 5.185823, "dinpkt": 6.209231,
+      "is_sm_ips_ports": 0, "ct_srv_src": 3, "ct_srv_dst": 2, "ct_dst_ltm": 1,
+      "ct_src_ltm": 1, "ct_src_dport_ltm": 1, "ct_dst_sport_ltm": 1, "ct_dst_src_ltm": 1,
+      "rate": 351.638062, "response_body_len": 0, "tcprtt": 0.057393, "synack": 0.013233,
+      "ackdat": 0.04416, "ct_state_ttl": 0, "ct_flw_http_mthd": 0, "is_ftp_login": 0,
+      "ct_ftp_cmd": 0, "trans_depth": 0, "swin": 255, "dwin": 255,
+      "stcpb": 133588210, "dtcpb": 357039015
+    }
+  ]
+}
+
+###
+# @name GetAllPredictions
+# [SUCCESS] Retrieves the list of all stored predictions.
+# Expected Response: 200 OK
+GET {{baseUrl}}/predictions/
+Accept: application/json
+
+###
+# @name GetPredictionById
+# [SUCCESS] Retrieves a single prediction by its ID.
+# NOTE: You may need to change '1' to an ID that exists in your database.
+# Expected Response: 200 OK
+GET {{baseUrl}}/predictions/1
+Accept: application/json
+
+
+#----------------------------------------------------#
+#                  ERROR & EDGE CASES                #
+#----------------------------------------------------#
+
+###
+# @name GetNonExistentPrediction
+# [ERROR] Tries to get a prediction with an ID that is unlikely to exist.
+# Expected Response: 404 Not Found
+GET {{baseUrl}}/predictions/999999
+Accept: application/json
+
+###
+# @name CreatePredictionWithInvalidData
+# [ERROR] Sends a record with a required field ("proto") missing.
+# Expected Response: 422 Unprocessable Entity
+POST {{baseUrl}}/predictions/
+Content-Type: application/json
+
+{
+  "records": [
+    {
+      "state": "FIN", "dur": 0.088159, "sbytes": 568, "dbytes": 3130,
+      "sttl": 62, "dttl": 252, "sloss": 7, "dloss": 5, "service": "-",
+      "sload": 45554.402344, "dload": 243763.421875, "spkts": 18, "dpkts": 14,
+      "smean": 32, "dmean": 224, "sjit": 23.477833, "djit": 1.400333,
+      "stime": 1421927414, "ltime": 1421927414, "sinpkt": 5.185823, "dinpkt": 6.209231,
+      "is_sm_ips_ports": 0, "ct_srv_src": 3, "ct_srv_dst": 2, "ct_dst_ltm": 1,
+      "ct_src_ltm": 1, "ct_src_dport_ltm": 1, "ct_dst_sport_ltm": 1, "ct_dst_src_ltm": 1,
+      "rate": 351.638062, "response_body_len": 0, "tcprtt": 0.057393, "synack": 0.013233,
+      "ackdat": 0.04416, "ct_state_ttl": 0, "ct_flw_http_mthd": 0, "is_ftp_login": 0,
+      "ct_ftp_cmd": 0, "trans_depth": 0, "swin": 255, "dwin": 255,
+      "stcpb": 133588210, "dtcpb": 357039015
+    }
+  ]
+}
+
+###
+# @name CreatePredictionWithEmptyRequest
+# [EDGE CASE] Sends an empty list of records.
+# Expected Response: This could be a 422 error or a 200 OK with an empty predictions array,
+# depending on your API's validation logic.
+POST {{baseUrl}}/predictions/
+Content-Type: application/json
+
+{
+  "records": []
+}
+
+###
+# @name GetAllPredictionsWithPagination
+# [EDGE CASE] Retrieves a list of predictions using pagination parameters.
+# This example requests the first 5 items, skipping none.
+# Expected Response: 200 OK
+GET {{baseUrl}}/predictions/?skip=0&limit=5
+Accept: application/json

@@ -1,7 +1,8 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+import redis.asyncio as redis
 
 from src.synaptic_ids.api import crud, schemas, services
 from src.synaptic_ids.api.database import get_db
@@ -13,6 +14,14 @@ router = APIRouter(
 )
 
 
+def get_redis_client(request: Request) -> redis.Redis:
+    if not request.app.state.redis:
+        raise HTTPException(
+            status_code=503, detail="Redis connection is not available."
+        )
+    return request.app.state.redis
+
+
 def get_prediction_service() -> services.PredictionService:
     model = ml_models.get("ids_model")
     if not model:
@@ -21,15 +30,16 @@ def get_prediction_service() -> services.PredictionService:
 
 
 @router.post("/", response_model=schemas.PredictionResponse)
-def predict(
+async def predict(
     prediction_input: schemas.PredictionInput,
     db: Session = Depends(get_db),
-    service: services.PredictionService = Depends(get_prediction_service),  # Corrigido
+    service: services.PredictionService = Depends(get_prediction_service),
+    redis_client: redis.Redis = Depends(get_redis_client),
 ):
     """
     Receives traffic records, performs a prediction, and stores the transaction.
     """
-    results = service.predict_and_store(db, prediction_input)
+    results = await service.predict_and_store(db, prediction_input, redis_client)
     return schemas.PredictionResponse(predictions=results)
 
 

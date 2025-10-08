@@ -1,7 +1,8 @@
-from typing import Tuple, List, Optional
-
+from typing import Tuple
+import json
 import numpy as np
 import pandas as pd
+import redis.asyncio
 
 
 class SequenceGenerator:
@@ -45,53 +46,88 @@ class SequenceGenerator:
             "spkts_dpkts_ratio",
         ]
 
-    def generate(
-        self, x: pd.DataFrame, y: Optional[pd.Series] = None
+    async def generate_online_sequence(
+        self, x: pd.DataFrame, redis_client: redis.Redis, session_id: str
+    ) -> np.ndarray:
+        """
+        Handles online sequence generation for a BATCH of new records using Redis.
+        It processes each record sequentially to build the correct temporal context.
+        """
+        print(f"Online mode: handling {len(x)} samples for session {session_id}.")
+
+        available_temporal = [f for f in self.temporal_features if f in x.columns]
+        redis_key = f"session:{session_id}"
+
+        generated_sequences = []
+
+        # Iterate over each record in the input DataFrame
+        for _, row in x[available_temporal].iterrows():
+            new_record_dict = row.to_dict()
+
+            # Get current sequence history from Redis
+            async with redis_client.pipeline(transaction=True) as pipe:
+                pipe.lpush(redis_key, json.dumps(new_record_dict))
+                pipe.ltrim(redis_key, 0, self.sequence_length - 1)
+                pipe.lrange(redis_key, 0, self.sequence_length - 1)
+                results = await pipe.execute()
+                current_sequence_json = results[2]
+
+            # Build the sequence for the current record
+            current_sequence_records = [
+                json.loads(r) for r in reversed(current_sequence_json)
+            ]
+            sequence_df = pd.DataFrame(
+                current_sequence_records, columns=available_temporal
+            ).fillna(0)
+            sequence_np = sequence_df.values
+
+            # Apply padding if the sequence is not yet full
+            current_len = len(sequence_np)
+            if current_len < self.sequence_length:
+                padding_size = self.sequence_length - current_len
+                padding = np.zeros((padding_size, sequence_np.shape[1]))
+                sequence_np = np.vstack([padding, sequence_np])
+
+            generated_sequences.append(sequence_np)
+
+        # Stack all generated sequences into a single numpy array for the batch
+        final_sequences_batch = np.array(generated_sequences).astype("float32")
+
+        print(
+            f"Generated a batch of {final_sequences_batch.shape[0]} "
+            f"sequences of shape {final_sequences_batch.shape} for prediction."
+        )
+        return final_sequences_batch
+
+    def generate_offline(
+        self, x: pd.DataFrame, y: pd.Series
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Takes engineered features and labels and generates sequences. Adapts
-        its strategy based on whether labels are provided (training vs. inference).
-
-        Args:
-            x (pd.DataFrame): The input features.
-            y (pd.Series): The corresponding labels.
-
-        Returns:
-            A tuple containing (sequences, labels, valid_indices_for_images).
+        Handles offline batch processing for training.
+        it also simulates session starts with zero-padding to match online behavior.
         """
-        print("Generating temporal sequences...")
-        # Filters by available temporal features
+        print("Offline mode: generating sequences with padding for consistency...")
         available_temporal = [f for f in self.temporal_features if f in x.columns]
         x_temporal = x[available_temporal].values
-        y_np = y.values if y is not None else None
-        n_samples = x.shape[0]
+        n_samples, n_features = x_temporal.shape
 
+        if n_samples < 1:
+            return np.array([]), np.array([]), np.array([])
+
+        padded_x = np.zeros((n_samples + self.sequence_length - 1, n_features))
+        padded_x[self.sequence_length - 1 :] = x_temporal
+
+        indices_list = [
+            list(range(i, i + self.sequence_length)) for i in range(n_samples)
+        ]
+        indices_np = np.array(indices_list)
+
+        sequences = np.array([padded_x[idx] for idx in indices_np])
+        labels = None
         if y is not None:
-            print("Offline mode: using sliding window to generate sequences.")
-            if n_samples < self.sequence_length:
-                return np.array([]), np.array([]), np.array([])
-
-            indices_list: List[List[int]] = []
-            for i in range(n_samples - self.sequence_length + 1):
-                indices_list.append(list(range(i, i + self.sequence_length)))
-
-            indices_np = np.array(indices_list)
-            sequences = np.array([x_temporal[idx] for idx in indices_np])
-            # A label de uma sequência é a label do seu último elemento.
-            labels = y_np[indices_np[:, -1]]
-            valid_indices = indices_np[:, -1]
-        else:
-            print(f"Online mode: handling batch of {n_samples} samples.")
-
-            sequences_temp = x_temporal[:, np.newaxis, :]
-
-            sequences = np.repeat(sequences_temp, self.sequence_length, axis=1)
-
-            labels = None
-            valid_indices = np.arange(n_samples)
+            labels = y.values.astype("int32")
+        valid_indices = np.arange(n_samples)
 
         print(f"Generated {len(sequences)} sequences.")
-        final_sequences = sequences.astype("float32")
-        final_labels = labels.astype("int32") if labels is not None else None
 
-        return final_sequences, final_labels, valid_indices
+        return sequences.astype("float32"), labels, valid_indices
