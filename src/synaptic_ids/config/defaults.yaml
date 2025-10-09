@@ -62,4 +62,4 @@ features:
 api:
   mlflow_model_uri: "models:/SynapticIDSPipeline/latest"
   model_mode: "binary"
-  database_url: "sqlite:///./synaptic-ids.db"
+  database_url: "postgresql://synaptic_user:123@localhost:5432/synaptic_db"

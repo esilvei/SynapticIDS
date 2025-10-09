@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from src.synaptic_ids.config import settings
 
 DATABASE_URL = settings.api.database_url
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
