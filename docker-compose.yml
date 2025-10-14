@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build: .
@@ -8,12 +6,14 @@ services:
     volumes:
       - ./src:/app/src
     depends_on:
-      - db
-      - redis
-  environment:
-    - DATABASE_URL=postgresql://user:password@db:5432/mlflowdb
-    - REDIS_HOST=redis
-    - REDIS_PORT=6379
+        - mlflow
+        - db
+        - redis
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
   mlflow:
     build:
       context: .
@@ -21,29 +21,36 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      - MLFLOW_BACKEND_STORE_URI=postgresql://user:password@db:5432/mlflowdb
-      - MLFLOW_ARTIFACT_ROOT=/mlruns
+      - MLFLOW_BACKEND_STORE_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     volumes:
       - ./mlruns:/mlruns
-    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://user:password@db/mlflowdb --default-artifact-root /mlruns
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB} --default-artifact-root mlflow-artifacts:/ --artifacts-destination /mlruns --serve-artifacts
+
   db:
-    image: postgres:13
+    image: postgres:17
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mlflowdb
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
 volumes:
     postgres_data:
     redis_data:

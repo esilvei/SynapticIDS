@@ -14,7 +14,7 @@ paths:
 training:
   mode: "binary"
   target_column: "label"
-  epochs: 30
+  epochs: 40 #40
   batch_size: 32 # test low values
   use_class_weights: None
   test_size: 0.1   # 10% of the data for the test set

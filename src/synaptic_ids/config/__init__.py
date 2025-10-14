@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from types import SimpleNamespace
 import yaml
@@ -28,15 +29,16 @@ def load_settings() -> SimpleNamespace:
 
     This function is the core of the configuration loader.
     """
-    # Define the path to the configuration file relative to this script
     config_path = Path(__file__).parent / "defaults.yaml"
 
     if not config_path.is_file():
         raise FileNotFoundError(f"Configuration file not found at: {config_path}")
 
-    # Open and safely load the YAML file's content
     with open(config_path, "r", encoding="utf-8") as f:
         config_data = yaml.safe_load(f)
+    database_url_from_env = os.getenv("DATABASE_URL")
+    if database_url_from_env:
+        config_data["api"]["database_url"] = database_url_from_env
     project_root = Path(__file__).resolve().parent.parent.parent.parent
     if "paths" not in config_data:
         config_data["paths"] = {}
