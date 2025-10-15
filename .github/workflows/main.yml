@@ -33,11 +33,9 @@ jobs:
           pip install -r requirements.txt
           pip install flake8 pytest
 
-      - name: Lint with Flake8
+      - name: Lint with Pylint
         run: |
-          # Combina as verificações do Flake8 em um único comando
-          # Remove --exit-zero para que o workflow falhe se houver erros de lint
-          flake8 src/ --count --max-complexity=10 --max-line-length=88 --statistics
+          pylint src/
 
       - name: Test with Pytest
         run: |
