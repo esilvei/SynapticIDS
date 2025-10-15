@@ -1,94 +1,93 @@
-
 # SynapticIDS: A Hybrid Deep Learning Intrusion Detection System 🛡️
 
 ## 🚀 Overview
 
-SynapticIDS is an end-to-end Intrusion Detection System (IDS) that leverages a hybrid deep learning architecture to identify and classify security threats in computer networks. The model, trained on the UNSW-NB15 dataset, is served via a high-performance **FastAPI** backend, providing a complete solution from training to real-time inference.
+SynapticIDS is an end-to-end Intrusion Detection System (IDS) that leverages a hybrid deep learning architecture to identify and classify security threats in computer networks. The model, trained on the UNSW-NB15 dataset, is served via a high-performance FastAPI backend and orchestrated with Docker, providing a complete, portable solution from training to real-time inference.
 
-This project uses **MLflow** 📈 for robust management of the entire model lifecycle. For development, this project uses **UV** ⚡ for high-speed dependency management and enforces code quality with **Pre-Commit** hooks ✅, including `ruff` and `pylint`.
+This project uses MLflow 📈 for robust management of the entire model lifecycle. For development, this project uses UV ⚡ for high-speed dependency management and enforces code quality with Pre-Commit hooks ✅, including `ruff` and `pylint`.
 
-***
+-----
 
 ## 🧠 Model Architecture
 
 The core of SynapticIDS is a hybrid model that processes network data in two parallel branches:
 
-1.  **🖼️ 2D Convolutional Branch**: Features from network traffic are transformed into a 2D image-like representation. A Convolutional Neural Network (CNN) then extracts spatial patterns.
-2.  **📉 Sequential Branch (GRU)**: The same features are treated as a time series. A Gated Recurrent Unit (GRU) network captures temporal dependencies in the packet flow.
+  - 🖼️ **2D Convolutional Branch**: Features from network traffic are transformed into a 2D image-like representation. A Convolutional Neural Network (CNN) then extracts spatial patterns.
+  - 📉 **Sequential Branch (GRU)**: The same features are treated as a time series. A Gated Recurrent Unit (GRU) network captures temporal dependencies in the packet flow.
 
-The outputs from both branches are merged using a **Transformer Fusion** mechanism before being passed through dense layers for the final classification, determining whether the traffic is normal or malicious.
+The outputs from both branches are merged using a **Transformer Fusion mechanism** before being passed through dense layers for the final classification, determining whether the traffic is normal or malicious.
 
-***
+-----
 
 ## ✨ Project Features
 
-* **📦 End-to-End ML Pipeline**: Complete scripts for data setup, feature engineering, model training, and evaluation.
-* **🚀 High-Performance API**: A RESTful API built with **FastAPI** to serve the trained model for real-time, batch predictions.
-* **📊 Experiment Management**: Full integration with **MLflow** to track experiments, manage model versions, and deploy models seamlessly from the registry.
-* **🧠 Real-time Sequential Analysis with Redis**: The system uses Redis for stateful session tracking. This allows the model to analyze true, time-ordered sequences of traffic for a given session, enabling more context-aware and accurate predictions.
-* **🗄️ Database Integration**: All predictions are automatically logged to a **SQLite** database using SQLAlchemy for auditing and retrieval.
-* **✅ Robust Testing Suite**: Includes unit and integration tests (`pytest`) for the API layer, ensuring code reliability and correctness.
-* **⚡ High-Speed Dependency Management**: Uses **UV** for fast and efficient virtual environment and package management.
-* **✅ Code Quality**: Pre-commit hooks are configured to enforce linting and code formatting standards automatically.
+  - 🐳 **Containerized Environment**: Full application suite orchestrated with Docker Compose, including the API, MLflow, Redis, and a PostgreSQL database for a consistent development and production setup.
+  - 🚀 **High-Performance API**: A RESTful API built with FastAPI to serve the trained model for real-time, batch predictions.
+  - 📊 **Experiment Management**: Full integration with MLflow to track experiments, manage model versions, and deploy models seamlessly from the registry.
+  - 🧠 **Real-time Sequential Analysis with Redis**: The system uses Redis for stateful session tracking. This allows the model to analyze true, time-ordered sequences of traffic for a given session, enabling more context-aware and accurate predictions.
+  - 🗄️ **Production-Ready Database**: All predictions are logged to a PostgreSQL database using SQLAlchemy for auditing and retrieval.
+  - ✅ **Robust Testing Suite**: Includes unit and integration tests (pytest) for the API layer, ensuring code reliability and correctness.
+  - ⚡ **High-Speed Dependency Management**: Uses UV for fast and efficient virtual environment and package management during development.
+  - ✅ **Code Quality**: Pre-commit hooks are configured to enforce linting and code formatting standards automatically.
 
-***
+-----
 
-## 🏁 Getting Started
+## 📈 Model Performance
+
+The model achieves state-of-the-art performance in network traffic classification. The results were evaluated on the test set of the UNSW-NB15 dataset.
+
+| Metric | Score  |
+| :--- |:-------|
+| Accuracy | 91.13% |
+| Precision | 0.9140 |
+
+
+-----
+
+## 🏁 Getting Started with Docker (Recommended)
+
+This is the easiest and most reliable way to run the entire application stack.
 
 ### Prerequisites
 
-* Python 3.10+
-* **UV** ⚡ (for package and environment management)
-* **Redis** (for real-time session tracking)
-* **Kaggle API Credentials**: To download the dataset, you need to have your Kaggle API credentials configured. You can find instructions on how to do this [here](https://www.kaggle.com/docs/api).
+  * Docker and Docker Compose
+  * **Kaggle API Credentials**: To download the dataset, you must have your `kaggle.json` file in `~/.kaggle/`. You can find instructions [here](https://www.kaggle.com/docs/api).
 
 ### 🛠️ Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/esilvei/SynapticIDS/](https://github.com/esilvei/SynapticIDS/)
+    git clone https://github.com/esilvei/SynapticIDS/
     cd SynapticIDS
     ```
-
-2.  **Create a virtual environment and install dependencies using UV:**
-    ```bash
-    # Create a virtual environment
-    uv venv
-
-    # Activate the environment
-    # On Windows (PowerShell/CMD)
-    .venv\Scripts\activate
-    # On macOS/Linux
-    source .venv/bin/activate
-
-    # Install/sync dependencies
-    uv sync
-    ```
-
-3.  **Set up the Pre-Commit Hooks:**
-    * This ensures that code quality checks are run automatically before each commit.
-    ```bash
-    pre-commit install
+2.  **Create an environment file:**
+    Create a file named `.env` in the project root and add the following content. This will configure the database credentials.
+    ```env
+    POSTGRES_USER=user
+    POSTGRES_PASSWORD=password
+    POSTGRES_DB=synaptic
     ```
 
 ### 🚀 How to Run
 
-Follow these steps to train the model and run the API.
+The workflow is separated into a one-time training step and the main application execution.
 
-**1. Train the Model:**
-Before running the API, you must train the model. This script will run the full pipeline and register the final model artifact in the local MLflow registry (`mlruns/`).
-```bash
-python src/synaptic_ids/training/run_training.py
-````
+1.  **Train the Model (One-Time Task)**
+    This command builds the Docker image, starts the necessary services (DB and MLflow), and runs the training script. The final model is automatically registered in MLflow.
+    ```bash
+    docker-compose run --build training
+    ```
+2.  **Run the Application**
+    Once the model is trained, this command starts the API, MLflow UI, Redis, and PostgreSQL database. It will not run the training again.
+    ```bash
+    docker-compose up
+    ```
 
-**2. Run the API Server:**
-Once the model is trained, start the API server using Uvicorn.
+The services are now available at:
 
-```bash
-uvicorn src.synaptic_ids.api.main:app --reload
-```
-
-The server will start on `http://127.0.0.1:8000`. You can access the interactive API documentation at `http://127.0.0.1:8000/docs`.
+  * **SynapticIDS API**: `http://localhost:8000`
+  * **API Docs (Swagger UI)**: `http://localhost:8000/docs`
+  * **MLflow Dashboard**: `http://localhost:5000`
 
 -----
 
@@ -98,21 +97,19 @@ The API is designed to receive a list of traffic records and return a prediction
 
 ### API Endpoints
 
-| Method | Endpoint                       | Description                                         |
-| :----- | :----------------------------- | :-------------------------------------------------- |
-| `GET`  | `/`                            | Health check to confirm the API is running.         |
-| `POST` | `/predictions/`                | Submits one or more traffic records for classification. |
-| `GET`  | `/predictions/`                | Retrieves a paginated list of all stored predictions. |
-| `GET`  | `/predictions/{prediction_id}` | Retrieves a single prediction by its unique ID.     |
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Health check to confirm the API is running. |
+| `POST` | `/predictions/` | Submits one or more traffic records for classification. |
+| `GET` | `/predictions/` | Retrieves a paginated list of all stored predictions. |
+| `GET` | `/predictions/{prediction_id}` | Retrieves a single prediction by its unique ID. |
 
 ### Example: Making a Prediction with `curl`
 
-You can send a `POST` request to the `/predictions/` endpoint with a list of records and a `session_id`.
-
-**Example of an "Attack" record:**
-
 ```bash
-curl -X POST "[http://127.0.0.1:8000/predictions/](http://127.0.0.1:8000/predictions/)" -H "Content-Type: application/json" -d '{
+curl -X POST "http://localhost:8000/predictions/" \
+-H "Content-Type: application/json" \
+-d '{
   "session_id": "user123_session",
   "records": [
     {
@@ -141,10 +138,7 @@ curl -X POST "[http://127.0.0.1:8000/predictions/](http://127.0.0.1:8000/predict
       "label": "Attack",
       "prediction": 1,
       "confidence": 0.9619,
-      "probabilities": {
-        "Normal": 0.0381,
-        "Attack": 0.9619
-      }
+      "probabilities": { "Normal": 0.0381, "Attack": 0.9619 }
     }
   ]
 }
@@ -152,48 +146,50 @@ curl -X POST "[http://127.0.0.1:8000/predictions/](http://127.0.0.1:8000/predict
 
 -----
 
-## 🖥️ Using the MLflow UI
-
-To visualize experiment results, run the MLflow UI pointing to the project's database:
-
-```bash
-mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
-```
-
-Access the dashboard at `http://127.0.0.1:5000`.
-
------
-
 ## 🗺️ Roadmap
 
 This section outlines the future plan for evolving SynapticIDS into a fully-fledged, production-ready system.
 
-### Phase 1: Containerization & Local Orchestration
+### Phase 1: Automation with CI/CD 🤖
 
-  * **Goal**: Ensure consistent and portable deployments by packaging the application.
-  * **Tasks**:
-    1.  **Finalize `Dockerfile`**: Create a multi-stage `Dockerfile` to build a lean, optimized production image for the FastAPI application.
-    2.  **Enhance `docker-compose.yaml`**: Update the `docker-compose.yaml` to orchestrate a multi-service environment including the API, Redis, and a **PostgreSQL** database as a more robust production alternative to SQLite.
+**Goal**: Automate testing and image building to ensure code quality and create deployment artifacts.
 
-### Phase 2: Cloud Deployment with IaC and Kubernetes
+**Tasks**:
 
-  * **Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
-  * **Tasks**:
-    1.  **Infrastructure as Code (IaC) with Terraform**: Write **Terraform** scripts to automatically provision a managed Kubernetes cluster (e.g., GKE on GCP), a managed Redis instance, and a managed PostgreSQL database.
-    2.  **Orchestration with Kubernetes (K8s)**:
-          * Write Kubernetes manifest files (`Deployment`, `Service`, `Ingress`) to deploy the containerized services.
-          * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
-    3.  **CI/CD Pipeline**: Set up a CI/CD pipeline (e.g., using GitHub Actions) to automate testing, building Docker images, and deploying updates to the Kubernetes cluster.
+  * **Implement GitHub Actions Workflows**:
+      * **Continuous Integration (CI)**: Create a workflow that triggers on every push and pull request to the `main` branch. This workflow will automatically run linting, formatting checks, and the full `pytest` suite.
+      * **Docker Build & Push**: Create a second workflow that, upon a successful merge to `main`, automatically builds the production Docker image and pushes it to a container registry (e.g., GitHub Container Registry or Docker Hub).
 
-### Phase 3: Advanced MLOps and Data Management
+### Phase 2: Cloud Deployment with IaC and Kubernetes ☁️
 
-  * **Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
-  * **Tasks**:
-    1.  **Data and Model Versioning with DVC**: Integrate **DVC (Data Version Control)** to work alongside Git. This will allow for versioning of large datasets and model files, ensuring full reproducibility of experiments.
-    2.  **Automated Retraining Pipeline**: Design and implement a system for automated model retraining. This pipeline would:
-          * Monitor for new, labeled data (e.g., from a production feedback loop).
-          * Trigger the training script automatically when a sufficient amount of new data is available.
-          * Evaluate the newly trained model against a holdout dataset.
-          * If the new model shows improved performance, automatically register it in the MLflow Model Registry and potentially flag it for promotion to production.
+**Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
 
-<!-- end list -->
+**Tasks**:
+
+  * **Infrastructure as Code (IaC) with Terraform**: Write Terraform scripts to automatically provision a managed Kubernetes cluster (e.g., GKE on GCP), a managed Redis instance, and a managed PostgreSQL database.
+  * **Orchestration with Kubernetes (K8s)**:
+      * Write Kubernetes manifest files (Deployment, Service, Ingress) to deploy the containerized services.
+      * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
+  * **Continuous Deployment (CD)**: Extend the GitHub Actions pipeline to automatically deploy the new Docker image version to the Kubernetes cluster after it passes all CI checks.
+
+### Phase 3: Advanced MLOps and Data Management 📊
+
+**Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
+
+**Tasks**:
+
+  * **Data and Model Versioning with DVC**: Integrate DVC (Data Version Control) to work alongside Git, enabling versioning of large datasets and models for full experiment reproducibility.
+  * **Automated Retraining Pipeline**: Design a system for automated model retraining that monitors for new data, triggers training jobs, evaluates new models, and flags them for promotion in the MLflow Model Registry if performance improves.
+
+### Phase 4: Security Hardening and Continuous Improvement 🔐
+
+**Goal**: Enhance API security, implement access controls, and create a data feedback loop for model retraining.
+
+**Tasks**:
+
+  * **Implement API Security**:
+      * **Authentication** 🔑: Integrate OAuth2 with JWT tokens to secure all endpoints. This will ensure that only authenticated clients can interact with the API.
+      * **Authorization** 🛡️: Implement role-based access control (RBAC). For instance, restrict access to the `GET /predictions/` endpoints to users with "analyst" or "admin" roles, preventing unauthorized data exposure.
+  * **Establish a Data Feedback Loop** 🔄:
+      * **Log Production Inputs** 📝: Create a secure and efficient mechanism to capture and store the traffic records sent to the prediction endpoint.
+      * **Data Labeling Interface** 🏷️: Develop a simple internal tool or process for security analysts to review and label the captured traffic, especially for ambiguous or novel threats. This labeled data will be crucial for the next generation of model training.
