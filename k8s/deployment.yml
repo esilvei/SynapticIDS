@@ -23,6 +23,15 @@ spec:
           runAsNonRoot: true
       - name: synaptic-ids-api
         image: southamerica-east1-docker.pkg.dev/synapticids/synapticids-repo/synaptic-ids:latest
+        command: [ "/bin/sh", "-c" ]
+        args:
+          - |
+              while ! nc -z 127.0.0.1 5432; do
+                echo "Waiting for the Cloud SQL proxy to be ready..."
+                sleep 1
+              done
+              echo "Cloud SQL proxy is ready. Starting the application."
+              uvicorn src.synaptic_ids.api.main:app --host 0.0.0.0 --port 8000
         ports:
         - containerPort: 8000
         env:
