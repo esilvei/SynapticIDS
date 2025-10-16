@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synaptic-ids-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: synaptic-ids
+  template:
+    metadata:
+      labels:
+        app: synaptic-ids
+    spec:
+      containers:
+      - name: cloud-sql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432" # <-- Usa o db_instance_connection_name
+        securityContext:
+          runAsNonRoot: true
+      - name: synaptic-ids-api
+        image: southamerica-east1-docker.pkg.dev/synapticids/synapticids-repo/synaptic-ids:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        - name: DATABASE_URL
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@127.0.0.1:5432/synapticids_db"
+        - name: REDIS_URL
+          value: "redis://10.44.95.43:6379"
