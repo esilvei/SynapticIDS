@@ -21,6 +21,8 @@ COPY --from=builder /app/.venv ./.venv
 
 COPY ./requirements.txt /app/requirements.txt
 
+COPY ./mlruns /app/mlruns
+
 COPY ./src /app/src
 
 ENV PATH="/app/.venv/bin:$PATH"

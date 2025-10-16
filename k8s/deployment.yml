@@ -15,9 +15,10 @@ spec:
       containers:
       - name: cloud-sql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
-        command:
-          - "/cloud_sql_proxy"
-          - "-instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432" # <-- Usa o db_instance_connection_name
+        command: [ "/bin/sh", "-c" ]
+        args:
+            - |
+              /cloud_sql_proxy -instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432
         securityContext:
           runAsUser: 65532
           runAsNonRoot: true
