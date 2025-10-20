@@ -32,8 +32,6 @@ class MLflowObserver(TrainingObserver):
         input_example: Any = None,
         pip_requirements_path: Any = None,
     ):
-        # If user passes a TensorFlow/Keras model directly, use the TF flavor.
-        # If it's a custom PythonModel (like our SynapticIDSPipeline), use the pyfunc flavor.
         if isinstance(model, mlflow.pyfunc.PythonModel):
             mlflow.pyfunc.log_model(
                 name=name,

@@ -11,6 +11,7 @@ env:
   GCP_PROJECT_ID: synapticids
   ARTIFACT_REGISTRY: synapticids-repo
   GKE_CLUSTER: synapticids-cluster
+  IMAGE_NAME: synaptic-ids
 jobs:
   build-and-test:
     name: Build and Test
@@ -74,6 +75,7 @@ jobs:
           DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          MLFLOW_TRACKING_URI: ${{ runner.temp }}/mlflow-runs
         run: |
           pytest
 
@@ -98,12 +100,17 @@ jobs:
         - name: Configure Docker for Artifact Registry
           run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
-        - name: Build and push Docker image
+        - name: Build and push Docker image with multiple tags
           run: |
-            IMAGE_TAG=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/synaptic-ids:${{ github.sha }}
-            docker build -t $IMAGE_TAG .
-            docker push $IMAGE_TAG
+              IMAGE_PATH=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}
 
+              TAG_SHA=$IMAGE_PATH:${{ github.sha }}
+              TAG_LATEST=$IMAGE_PATH:latest
+
+              docker build -t $TAG_SHA -t $TAG_LATEST .
+
+              docker push $TAG_SHA
+              docker push $TAG_LATEST
   deploy-to-gke:
       name: Deploy to GKE
       needs: build-and-push-to-gcr
@@ -131,5 +138,6 @@ jobs:
 
         - name: Deploy to GKE
           run: |
-            sed -i 's|image: .*|image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/synaptic-ids:${{ github.sha }}|g' k8s/deployment.yml
+            IMAGE_WITH_SHA_TAG=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            sed -i "s|image: .*${{ env.IMAGE_NAME }}.*|image: $IMAGE_WITH_SHA_TAG|g" k8s/deployment.yml
             kubectl apply -f k8s/

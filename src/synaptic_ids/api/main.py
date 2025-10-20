@@ -4,17 +4,15 @@ from contextlib import asynccontextmanager
 
 import mlflow
 from fastapi import FastAPI
-from mlflow import MlflowException
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 
-from src.synaptic_ids.config import settings
 from src.synaptic_ids.training.model.transformer_fusion import TransformerFusion  # noqa: F401
 from src.synaptic_ids.training.lr_scheduler import OneCycleLR  # noqa: F401
 from src.synaptic_ids.api import models
 from src.synaptic_ids.api.database import engine
 from src.synaptic_ids.api.routers import predictions
-from src.synaptic_ids.api.app_state import ml_models
+from src.synaptic_ids.api.app_state import ml_models, load_model
 
 mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 if mlflow_tracking_uri:
@@ -33,19 +31,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Loading ML model from MLflow URI: %s", settings.api.mlflow_model_uri)
-    try:
-        ml_models["ids_model"] = mlflow.pyfunc.load_model(
-            model_uri=settings.api.mlflow_model_uri
-        )
-        logger.info("ML model loaded successfully and is available.")
-    except MlflowException as e:
-        logger.error("Failed to load ML model on startup: %s", e, exc_info=True)
-        ml_models["ids_model"] = None
+    load_model()
     logger.info("Connecting to Redis at %s...", REDIS_URL)
     try:
         app.state.redis = await redis.from_url(
-            REDIS_URL, encoding="utf-8", decode_responses=True
+            REDIS_URL, encoding="utf-8", decode_responses=True, protocol=3
         )
         logger.info("Connected to Redis successfully.")
     except RedisError as e:

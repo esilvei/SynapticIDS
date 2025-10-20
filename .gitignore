@@ -6,14 +6,17 @@ __pycache__/
 .pytest_cache/
 *.pyc
 data/
+*.db.trash
 mlruns/
+/mlruns-test
 .DS_Store
 Thumbs.db
 .trash
 *.db
-.env
 # Terraform files
 .terraform/
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
+*.tfstate
+*.tfstate.*

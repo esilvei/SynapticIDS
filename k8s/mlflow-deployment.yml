@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-server-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-server
+  template:
+    metadata:
+      labels:
+        app: mlflow-server
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: mlflow-server
+        image: ghcr.io/mlflow/mlflow:v3.4.0
+        command: ["/bin/sh", "-c"]
+        args:
+            - "pip install psycopg2-binary && mlflow server --backend-store-uri=postgresql+psycopg2://$(DB_USER):$(DB_PASSWORD)@127.0.0.1:5432/mlflowdb --default-artifact-root=gs://synapticids-mlflow-artifacts --host=0.0.0.0"
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        ports:
+        - containerPort: 5000
+      - name: cloud-sql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432"
+        securityContext:
+          runAsUser: 65532
+          runAsNonRoot: true

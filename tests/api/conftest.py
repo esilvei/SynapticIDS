@@ -18,20 +18,6 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 Base.metadata.create_all(bind=engine)
 
 
-def override_get_db():
-    """
-    override_get_db
-    """
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
 @pytest.fixture(scope="function")
 def db_session():
     """
@@ -83,10 +69,6 @@ def mock_ml_model():
     Provides a mock of the ML model for testing purposes.
     """
     mock_model = MagicMock()
-    # Simulate a multi-class output for two records
-    mock_model.predict.return_value = [
-        [0.1, 0.0, 0.0, 0.8, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0],  # "Attack"
-        [0.8, 0.0, 0.0, 0.1, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0],  # "Normal"
-    ]
     ml_models["ids_model"] = mock_model
-    return mock_model
+    yield mock_model
+    ml_models.clear()

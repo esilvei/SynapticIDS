@@ -28,6 +28,8 @@ from src.synaptic_ids.training.observers.setup_mlflow import setup_mlflow_local
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+os.environ["MLFLOW_TRACKING_URI"] = "http://34.39.219.109:5000"
+
 
 def setup_and_load_data():
     """Sets up dataset paths and loads data into dataframes."""

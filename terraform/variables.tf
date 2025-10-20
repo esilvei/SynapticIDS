@@ -44,3 +44,9 @@ variable "redis_instance_name" {
   type        = string
   default     = "synapticids-redis"
 }
+
+variable "mlflow_db_name" {
+  description = "The name of the database for MLflow"
+  type        = string
+  default     = "mlflowdb"
+}

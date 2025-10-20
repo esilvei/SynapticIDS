@@ -42,3 +42,8 @@ resource "google_redis_instance" "cache" {
   memory_size_gb = 1
   region         = var.region
 }
+
+resource "google_sql_database" "mlflow_db" {
+  name     = "mlflowdb"
+  instance = google_sql_database_instance.main.name
+}
