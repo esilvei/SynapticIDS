@@ -19,9 +19,12 @@ if mlflow_tracking_uri:
     mlflow.set_tracking_uri(mlflow_tracking_uri)
     print(f"MLflow tracking URI set to: {mlflow_tracking_uri}")
 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
+REDIS_URL = os.getenv("REDIS_URL")
+
+if not REDIS_URL:
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

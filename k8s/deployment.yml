@@ -15,10 +15,9 @@ spec:
       containers:
       - name: cloud-sql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
-        command: [ "/bin/sh", "-c" ]
-        args:
-            - |
-              /cloud_sql_proxy -instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=synapticids:southamerica-east1:synapticids-db-instance=tcp:5432"
         securityContext:
           runAsUser: 65532
           runAsNonRoot: true
@@ -49,6 +48,6 @@ spec:
         - name:   MLFLOW_TRACKING_URI
           value: "http://mlflow-service:5000"
         - name: DATABASE_URL
-          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@127.0.0.1:5432/synapticids_db"
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@127.0.0.1:5432/mlflowdb"
         - name: REDIS_URL
-          value: "redis://10.44.95.43:6379"
+          value: "redis://redis-service:6379"
