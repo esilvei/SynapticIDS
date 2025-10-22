@@ -1,95 +1,130 @@
-# SynapticIDS: A Hybrid Deep Learning Intrusion Detection System 🛡️
+# SynapticIDS: A Cloud-Native Intrusion Detection System 🛡️
 
 ## 🚀 Overview
 
-SynapticIDS is an end-to-end Intrusion Detection System (IDS) that leverages a hybrid deep learning architecture to identify and classify security threats in computer networks. The model, trained on the UNSW-NB15 dataset, is served via a high-performance FastAPI backend and orchestrated with Docker, providing a complete, portable solution from training to real-time inference.
+SynapticIDS is an end-to-end Intrusion Detection System (IDS) deployed on the **Google Cloud Platform (GCP)**. It leverages a hybrid deep learning architecture to identify and classify security threats in real-time.
 
-This project uses MLflow 📈 for robust management of the entire model lifecycle. For development, this project uses UV ⚡ for high-speed dependency management and enforces code quality with Pre-Commit hooks ✅, including `ruff` and `pylint`.
+The entire infrastructure is provisioned as code with **Terraform** and deployed on the **Google Kubernetes Engine (GKE)**, creating a scalable, production-ready solution. The project features a complete MLOps workflow with a centralized **MLflow Tracking Server** for robust experiment management and a **GitHub Actions CI/CD pipeline** for full automation.
 
------
+## 🛠️ Technology Stack
+
+| Category | Technology |
+| :--- | :--- |
+| **Backend & API** | Python, FastAPI, SQLAlchemy |
+| **ML & MLOps** | TensorFlow, MLflow, Scikit-learn, Pandas |
+| **Containerization** | Docker, Kubernetes (GKE) |
+| **Database & Caching**| PostgreSQL (Cloud SQL), Redis (Memorystore) |
+| **Infrastructure (IaC)**| Terraform, Google Cloud Platform (GCP) |
+| **CI/CD** | GitHub Actions, Google Artifact Registry |
+
+## ✨ Project Features
+
+* **☁️ Cloud-Native Deployment**: Fully orchestrated on **Google Kubernetes Engine (GKE)** for high availability and scalability.
+* **🏗️ Infrastructure as Code (IaC)**: All cloud resources (GKE, Cloud SQL, Memorystore, GCS) are managed declaratively using **Terraform** for reproducible environments.
+* **🤖 Automated CI/CD Pipeline**: A **GitHub Actions** workflow automates testing, Docker image builds, pushing to **Google Artifact Registry**, and deploying to GKE.
+* **📊 Centralized MLOps**: A dedicated **MLflow Tracking Server** on GKE uses **Cloud SQL** for metadata and **Cloud Storage (GCS)** for artifact storage, enabling a full model lifecycle management.
+* **🚀 High-Performance API**: A RESTful API built with **FastAPI** serves the trained model for real-time, stateful predictions.
+* **🧠 Real-time Sequential Analysis**: Uses **Memorystore (Redis)** for stateful session tracking, allowing the model to analyze time-ordered sequences of traffic.
+* **🗄️ Managed Database**: Predictions are logged to a managed **Google Cloud SQL (PostgreSQL)** instance for auditing and retrieval.
+* **🐳 Containerized Environment**: All services are containerized with **Docker**, ensuring consistency across local development and cloud production environments.
 
 ## 🧠 Model Architecture
 
 The core of SynapticIDS is a hybrid model that processes network data in two parallel branches:
 
-  - 🖼️ **2D Convolutional Branch**: Features from network traffic are transformed into a 2D image-like representation. A Convolutional Neural Network (CNN) then extracts spatial patterns.
-  - 📉 **Sequential Branch (GRU)**: The same features are treated as a time series. A Gated Recurrent Unit (GRU) network captures temporal dependencies in the packet flow.
+-   🖼️ **2D Convolutional Branch**: Features from network traffic are transformed into a 2D image-like representation. A Convolutional Neural Network (CNN) then extracts spatial patterns.
+-   📉 **Sequential Branch (GRU)**: The same features are treated as a time series. A Gated Recurrent Unit (GRU) network captures temporal dependencies in the packet flow.
 
-The outputs from both branches are merged using a **Transformer Fusion mechanism** before being passed through dense layers for the final classification, determining whether the traffic is normal or malicious.
-
------
-
-## ✨ Project Features
-
-  - 🐳 **Containerized Environment**: Full application suite orchestrated with Docker Compose, including the API, MLflow, Redis, and a PostgreSQL database for a consistent development and production setup.
-  - 🚀 **High-Performance API**: A RESTful API built with FastAPI to serve the trained model for real-time, batch predictions.
-  - 📊 **Experiment Management**: Full integration with MLflow to track experiments, manage model versions, and deploy models seamlessly from the registry.
-  - 🧠 **Real-time Sequential Analysis with Redis**: The system uses Redis for stateful session tracking. This allows the model to analyze true, time-ordered sequences of traffic for a given session, enabling more context-aware and accurate predictions.
-  - 🗄️ **Production-Ready Database**: All predictions are logged to a PostgreSQL database using SQLAlchemy for auditing and retrieval.
-  - ✅ **Robust Testing Suite**: Includes unit and integration tests (pytest) for the API layer, ensuring code reliability and correctness.
-  - ⚡ **High-Speed Dependency Management**: Uses UV for fast and efficient virtual environment and package management during development.
-  - ✅ **Code Quality**: Pre-commit hooks are configured to enforce linting and code formatting standards automatically.
-
------
+The outputs from both branches are merged using a **Transformer Fusion mechanism** before being passed through dense layers for the final classification.
 
 ## 📈 Model Performance
 
 The model achieves state-of-the-art performance in network traffic classification. The results were evaluated on the test set of the UNSW-NB15 dataset.
 
-| Metric | Score  |
-| :--- |:-------|
-| Accuracy | 91.13% |
-| Precision | 0.9140 |
+| Metric | Score |
+| :--- | :--- |
+| **Accuracy** | 91.13% |
+| **Precision**| 0.9140 |
 
+## 🏁 Getting Started
 
------
+### ☁️ Option 1: Deploy to the Cloud with Terraform and Kubernetes (Production)
 
-## 🏁 Getting Started with Docker (Recommended)
+This method provisions the entire infrastructure on GCP and deploys the application.
 
-This is the easiest and most reliable way to run the entire application stack.
+**Prerequisites:**
 
-### Prerequisites
+* Google Cloud SDK (`gcloud`) installed and authenticated.
+* Terraform installed.
+* `kubectl` installed.
 
-  * Docker and Docker Compose
-  * **Kaggle API Credentials**: To download the dataset, you must have your `kaggle.json` file in `~/.kaggle/`. You can find instructions [here](https://www.kaggle.com/docs/api).
+**Steps:**
 
-### 🛠️ Installation & Setup
-
-1.  **Clone the repository:**
+1.  **Provision the Infrastructure**:
+    Navigate to the `terraform/` directory and run the following commands to create the GKE cluster, Cloud SQL database, and other resources.
     ```bash
-    git clone https://github.com/esilvei/SynapticIDS/
+    cd terraform
+    terraform init
+    terraform apply
+    ```
+2.  **Connect to the GKE Cluster**:
+    Configure `kubectl` to communicate with your new cluster.
+    ```bash
+    gcloud container clusters get-credentials [YOUR_CLUSTER_NAME] --region [YOUR_REGION]
+    ```
+3.  **Create the Database Secret**:
+    Before deploying, you must create the Kubernetes secret that the application will use to connect to the Cloud SQL database.
+    ```bash
+    kubectl create secret generic db-credentials \
+      --from-literal=username=[YOUR_DB_USER] \
+      --from-literal=password=[YOUR_DB_PASSWORD]
+    ```
+4.  **Deploy the Application**:
+    From the project root, apply the Kubernetes manifests to deploy all services (API, MLflow, etc.).
+    ```bash
+    kubectl apply -f k8s/
+    ```
+5.  **Access the Services**:
+    Find the external IP address of your API's LoadBalancer service to start making predictions.
+    ```bash
+    kubectl get services
+    ```
+
+### 🐳 Option 2: Run Locally with Docker (Development)
+
+This is the easiest way to run the entire application stack on your local machine.
+
+**Prerequisites:**
+
+* Docker and Docker Compose.
+* Kaggle API Credentials: Your `kaggle.json` file must be in `~/.kaggle/`.
+
+**Steps:**
+
+1.  **Clone the repository and set up the environment**:
+    ```bash
+    git clone [https://github.com/esilvei/SynapticIDS/](https://github.com/esilvei/SynapticIDS/)
     cd SynapticIDS
+    cp .env.example .env # Create .env and customize if needed
     ```
-2.  **Create an environment file:**
-    Create a file named `.env` in the project root and add the following content. This will configure the database credentials.
-    ```env
-    POSTGRES_USER=user
-    POSTGRES_PASSWORD=password
-    POSTGRES_DB=synaptic
-    ```
-
-### 🚀 How to Run
-
-The workflow is separated into a one-time training step and the main application execution.
-
-1.  **Train the Model (One-Time Task)**
-    This command builds the Docker image, starts the necessary services (DB and MLflow), and runs the training script. The final model is automatically registered in MLflow.
+2.  **Train the Model (One-Time Task)**:
+    This command builds the Docker image and runs the training script. The final model is registered in the local MLflow instance.
     ```bash
     docker-compose run --build training
     ```
-2.  **Run the Application**
-    Once the model is trained, this command starts the API, MLflow UI, Redis, and PostgreSQL database. It will not run the training again.
+3.  **Run the Application**:
+    This starts the API, MLflow UI, Redis, and PostgreSQL database.
     ```bash
     docker-compose up
     ```
 
-The services are now available at:
+**Local Endpoints:**
 
-  * **SynapticIDS API**: `http://localhost:8000`
-  * **API Docs (Swagger UI)**: `http://localhost:8000/docs`
-  * **MLflow Dashboard**: `http://localhost:5000`
+* **SynapticIDS API**: `http://localhost:8000`
+* **API Docs (Swagger UI)**: `http://localhost:8000/docs`
+* **MLflow Dashboard**: `http://localhost:5000`
 
------
+---
 
 ## 🔌 API Usage
 
@@ -107,7 +142,7 @@ The API is designed to receive a list of traffic records and return a prediction
 ### Example: Making a Prediction with `curl`
 
 ```bash
-curl -X POST "http://localhost:8000/predictions/" \
+curl -X POST "http://[YOUR_API_IP_OR_LOCALHOST]:8000/predictions/" \
 -H "Content-Type: application/json" \
 -d '{
   "session_id": "user123_session",
@@ -129,67 +164,30 @@ curl -X POST "http://localhost:8000/predictions/" \
 }'
 ```
 
-**Expected Response:**
-
-```json
-{
-  "predictions": [
-    {
-      "label": "Attack",
-      "prediction": 1,
-      "confidence": 0.9619,
-      "probabilities": { "Normal": 0.0381, "Attack": 0.9619 }
-    }
-  ]
-}
-```
-
------
-
 ## 🗺️ Roadmap
 
-This section outlines the future plan for evolving SynapticIDS into a fully-fledged, production-ready system.
+This section outlines the future plan for evolving SynapticIDS into a fully autonomous, self-improving security system.
 
-### Phase 1: Automation with CI/CD 🤖
+### Phase 1: Advanced MLOps and Data Management 📊
 
-**Goal**: Automate testing and image building to ensure code quality and create deployment artifacts.
+- **Data and Model Versioning with DVC:** Integrate DVC (Data Version Control) to work alongside Git, enabling versioning of large datasets and models for full experiment reproducibility.
+- **Automated Retraining Pipeline:** Design a system for automated model retraining that monitors for new data, triggers training jobs on GKE, evaluates new models, and flags them for promotion in the MLflow Model Registry if performance improves.
 
-**Tasks**:
+---
 
-  * **Implement GitHub Actions Workflows**:
-      * **Continuous Integration (CI)**: Create a workflow that triggers on every push and pull request to the `main` branch. This workflow will automatically run linting, formatting checks, and the full `pytest` suite.
-      * **Docker Build & Push**: Create a second workflow that, upon a successful merge to `main`, automatically builds the production Docker image and pushes it to a container registry (e.g., GitHub Container Registry or Docker Hub).
+### Phase 2: Security Hardening and Continuous Improvement 🔐
 
-### Phase 2: Cloud Deployment with IaC and Kubernetes ☁️
+- **Implement API Security:**
+  - **Authentication 🔑:** Integrate OAuth2 with JWT tokens to secure all endpoints.
+  - **Authorization 🛡️:** Implement role-based access control (RBAC) to restrict access to sensitive endpoints.
+- **Establish a Data Feedback Loop 🔄:**
+  - **Log Production Inputs 📝:** Create a secure mechanism to capture and store the traffic records sent to the prediction endpoint.
+  - **Data Labeling Interface 🏷️:** Develop a simple internal tool for security analysts to review and label the captured traffic, which will be used for the next generation of model training.
 
-**Goal**: Automate infrastructure provisioning and deploy the application in a scalable, resilient cloud environment.
+---
 
-**Tasks**:
+### Phase 3: Continuous Learning and Automated Data Pipelines 🚀
 
-  * **Infrastructure as Code (IaC) with Terraform**: Write Terraform scripts to automatically provision a managed Kubernetes cluster (e.g., GKE on GCP), a managed Redis instance, and a managed PostgreSQL database.
-  * **Orchestration with Kubernetes (K8s)**:
-      * Write Kubernetes manifest files (Deployment, Service, Ingress) to deploy the containerized services.
-      * Implement a Horizontal Pod Autoscaler (HPA) to automatically scale the API based on traffic load.
-  * **Continuous Deployment (CD)**: Extend the GitHub Actions pipeline to automatically deploy the new Docker image version to the Kubernetes cluster after it passes all CI checks.
-
-### Phase 3: Advanced MLOps and Data Management 📊
-
-**Goal**: Implement advanced MLOps practices for data versioning and continuous model improvement.
-
-**Tasks**:
-
-  * **Data and Model Versioning with DVC**: Integrate DVC (Data Version Control) to work alongside Git, enabling versioning of large datasets and models for full experiment reproducibility.
-  * **Automated Retraining Pipeline**: Design a system for automated model retraining that monitors for new data, triggers training jobs, evaluates new models, and flags them for promotion in the MLflow Model Registry if performance improves.
-
-### Phase 4: Security Hardening and Continuous Improvement 🔐
-
-**Goal**: Enhance API security, implement access controls, and create a data feedback loop for model retraining.
-
-**Tasks**:
-
-  * **Implement API Security**:
-      * **Authentication** 🔑: Integrate OAuth2 with JWT tokens to secure all endpoints. This will ensure that only authenticated clients can interact with the API.
-      * **Authorization** 🛡️: Implement role-based access control (RBAC). For instance, restrict access to the `GET /predictions/` endpoints to users with "analyst" or "admin" roles, preventing unauthorized data exposure.
-  * **Establish a Data Feedback Loop** 🔄:
-      * **Log Production Inputs** 📝: Create a secure and efficient mechanism to capture and store the traffic records sent to the prediction endpoint.
-      * **Data Labeling Interface** 🏷️: Develop a simple internal tool or process for security analysts to review and label the captured traffic, especially for ambiguous or novel threats. This labeled data will be crucial for the next generation of model training.
+- **Automated Network Data Ingestion:** Develop a service that automatically detects and captures live network traffic, preparing it for the processing pipeline.
+- **Data Monitoring and Orchestration with Airflow:** Implement Apache Airflow to create, schedule, and monitor data engineering pipelines, managing the flow of data from ingestion to storage.
+- **Continuous Learning Loop:** Connect the automated data pipelines with the retraining system. New, labeled data will automatically trigger model evaluation and potential redeployment, allowing the IDS to adapt to emerging threats without manual intervention.
